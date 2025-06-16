@@ -69,11 +69,16 @@ def gerar_semanas(mes, ano):
 def index():
     return render_template('login.html')
 
+from sqlalchemy import func
+
 @app.route('/login', methods=['POST'])
 def login():
-    email = request.form['email']
+    nome = request.form['nome']
     senha = request.form['senha']
-    usuario = Usuario.query.filter_by(email=email).first()
+    
+    # Busca ignorando diferenças de maiúsculas/minúsculas
+    usuario = Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first()
+
     if usuario and check_password_hash(usuario.senha, senha):
         session['usuario_id'] = usuario.id
         session['usuario_tipo'] = usuario.tipo
@@ -83,7 +88,9 @@ def login():
             return redirect(url_for('painel_estagiarias'))
         else:
             return redirect(url_for('painel_gerente'))
+
     return 'Login inválido'
+
 
 @app.route('/primeiro-acesso', methods=['POST'])
 def primeiro_acesso():
@@ -496,6 +503,28 @@ def editar_producao_lote(analista_id):
 if __name__ == '__main__':
     app.run(debug=True)
     
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
 
 
 
