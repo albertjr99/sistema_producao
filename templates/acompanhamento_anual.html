@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6">
+<a href="{{ url_for('painel_gerente') }}" class="inline-block bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 mb-4">
+  ← Voltar para o Painel dos Gestores
+</a>
+  <h1 class="text-2xl font-bold mb-4">Acompanhamento Anual do Setor</h1>
+
+  {% for mes, contagem in totais_anuais.items() %}
+  <div class="mb-6">
+    <h2 class="text-xl font-semibold mb-2">{{ mes }}</h2>
+    <table class="w-full table-auto border text-sm">
+      <thead class="bg-gray-200">
+        <tr>
+          {% for campo in contagem.keys() %}
+          <th class="border px-2 py-1">{{ campo.replace('_', ' ') | title }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% for campo in contagem.keys() %}
+          <td class="border px-2 py-1 text-center">{{ contagem[campo] }}</td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
