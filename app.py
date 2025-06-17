@@ -111,28 +111,36 @@ def primeiro_acesso():
 
 @app.route('/acompanhamento-anual')
 def acompanhamento_anual():
-    if 'usuario_id' not in session or session['usuario_tipo'] == 'analista':
-        flash('Acesso não autorizado.')
-        return redirect(url_for('index'))
-
-    campos_checkbox = [
+    campos = [
         'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc',
         'conf_ctc', 'dtc', 'conf_dtc', 'in_68', 'dpor',
         'registro_atos', 'ag_completar', 'outros'
     ]
-
     meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-    totais_anuais = {}
 
-    for mes in meses:
-        totais_anuais[mes] = {campo: 0 for campo in campos_checkbox}
-        producoes = LinhaProducao.query.filter_by(mes=mes).all()
-        for producao in producoes:
-            for campo in campos_checkbox:
-                if getattr(producao, campo):
-                    totais_anuais[mes][campo] += 1
+    # Inicializa estrutura para totais
+    totais_anuais = {mes: {campo: 0 for campo in campos} for mes in meses}
 
-    return render_template('acompanhamento_anual.html', totais_anuais=totais_anuais)
+    # Coleta e contabiliza dados
+    producoes = LinhaProducao.query.filter(LinhaProducao.mes.in_(meses)).all()
+    for producao in producoes:
+        for campo in campos:
+            if getattr(producao, campo, False):
+                totais_anuais[producao.mes][campo] += 1
+
+    # Prepara dados agregados para gráfico
+    grafico_anos = {
+        campo: sum(totais[campo] for totais in totais_anuais.values())
+        for campo in campos
+    }
+
+    return render_template(
+        'acompanhamento_anual.html',
+        totais_anuais=totais_anuais,
+        grafico_anos=grafico_anos,
+        meses=meses,
+        campos=campos
+    )
 
 
 @app.route('/painel-gerente', methods=['GET', 'POST'])
@@ -165,6 +173,7 @@ def painel_gerente():
     total_feito = 0
     percentual_meta = 0
     meta = 100
+    alertas = {}
 
     if usuario_selecionado:
         meta = 112 if usuario_selecionado.modalidade == "teletrabalho" else 100
@@ -183,7 +192,7 @@ def painel_gerente():
                             usuario_id=usuario_selecionado.id,
                             mes=mes,
                             semana=semana,
-                            indice_linha=i,  # <- campo obrigatório adicionado
+                            indice_linha=i,
                             data_registro=datetime.utcnow()
                         )
                         db.session.add(producao)
@@ -222,7 +231,12 @@ def painel_gerente():
         total_feito = sum(sum(t.values()) for t in totais.values())
         percentual_meta = min(int((total_feito / meta) * 100), 100)
 
-    # Acompanhamento Anual do Setor
+        for semana in semanas:
+            total_atividades = sum(totais[semana].values())
+            esperado = 25 if usuario_selecionado.modalidade == 'presencial' else 28
+            if total_atividades < esperado:
+                alertas[semana] = f"Faltam {esperado - total_atividades} tarefas"
+
     totais_anuais = {mes: {campo: 0 for campo in campos_checkbox} for mes in meses}
     for mes_ref in meses:
         producoes = LinhaProducao.query.filter_by(mes=mes_ref).all()
@@ -244,9 +258,9 @@ def painel_gerente():
         percentual_meta=percentual_meta,
         meta=meta,
         mes=mes,
-        totais_anuais=totais_anuais
+        totais_anuais=totais_anuais,
+        alertas=alertas
     )
-
 
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
 def editar_producao(id):
@@ -503,28 +517,6 @@ def editar_producao_lote(analista_id):
 if __name__ == '__main__':
     app.run(debug=True)
     
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
 
 
 

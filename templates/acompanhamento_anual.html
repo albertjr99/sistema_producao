@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Acompanhamento Anual</h1>
+
+  <div class="mb-6 flex gap-4">
+    <a href="{{ url_for('painel_gerente') }}" class="bg-gray-600 text-white px-4 py-2 rounded">
+      Voltar ao Painel dos Gestores
+    </a>
+  </div>
+
+  <table class="w-full table-auto border text-sm bg-white shadow rounded mb-4">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="border px-2 py-1">Mês</th>
+        {% for campo in totais_anuais['Junho'].keys() %}
+        <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for mes_nome, dados in totais_anuais.items() %}
+      <tr>
+        <td class="border px-2 py-1 font-semibold">{{ mes_nome }}</td>
+        {% for valor in dados.values() %}
+        <td class="border px-2 py-1 text-center">{{ valor }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="flex gap-4 mb-4">
+    <button id="btnGrafico" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Exibir Gráfico</button>
+    <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Imprimir</button>
+  </div>
+
+  <canvas id="graficoAtividades" class="my-6 hidden w-full max-w-5xl mx-auto"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.getElementById('btnGrafico').addEventListener('click', function () {
+      const canvas = document.getElementById('graficoAtividades');
+      canvas.classList.toggle('hidden');
+
+      if (!canvas.dataset.rendered) {
+        const labels = {{ totais_anuais['Junho'].keys()|list|tojson }};
+  const dados = {{ grafico_anos|tojson }};
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Total Anual por Tipo de Peça',
+              data: dados,
+              backgroundColor: 'rgba(54, 162, 235, 0.7)'
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+          }
+        });
+        canvas.dataset.rendered = true;
+      }
+    });
+  </script>
+</div>
+{% endblock %}
