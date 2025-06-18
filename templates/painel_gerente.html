@@ -123,21 +123,18 @@
                     <td class="border px-2 text-center">
                       <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}" {% if p and (p|get_attr(campo)) %}checked{% endif %}>
                     </td>
-                 
                   {% endfor %}
                   <td class="border px-2">
                     <input type="text" name="{{ semana }}_{{ i }}_obs" value="{{ p.observacao if p else '' }}" class="w-full border p-1">
                   </td>
-                </tr>
-               
+                </tr> 
               {% endfor %}
             </tbody>
           </table>
         </div>
-      
       {% endfor %}
-      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Salvar Alterações</button>
     </form>
   {% endif %}
 </div>
+<button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Salvar Alterações</button>
 {% endblock %}
