@@ -72,8 +72,11 @@ def index():
 
 from sqlalchemy import func
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        return render_template('login.html')
+
     nome = request.form['nome']
     senha = request.form['senha']
     
@@ -91,6 +94,7 @@ def login():
             return redirect(url_for('painel_gerente'))
 
     return 'Login inválido'
+
 
 @app.route('/logout')
 def logout():
