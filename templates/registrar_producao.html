@@ -189,17 +189,17 @@
 <td class="border px-2">{{ processos_info[semana][i].requerente or '' }}</td>
 <td class="border px-2">{{ processos_info[semana][i].fase or '' }}</td>
           {% for campo in campos %}
-          <td class="border px-2">
-            <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}" {% if processos_info[semana][i] and processos_info[semana][i][campo] %}checked{% endif %}>
-          </td>
-          </table>
-
-<!-- Botão fora da tabela, por semana -->
-<div class="mt-2">
+  <td class="border px-2">
+    <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}" {% if processos_info[semana][i] and processos_info[semana][i][campo] %}checked{% endif %}>
+  </td>
+{% endfor %}
+<td class="border px-2">
+  <input type="text" name="{{ semana }}_{{ i }}_obs" class="w-full border rounded p-1" value="{{ processos_info[semana][i].observacao if processos_info[semana][i] }}">
+</td>
+<td>
   <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Salvar Produção</button>
-</div>
+</td>
 
-          {% endfor %}
             <td class="border px-2">
             <input type="text" name="{{ semana }}_{{ i }}_obs" class="w-full border rounded p-1" value="{{ processos_info[semana][i].observacao if processos_info[semana][i] }}">
           </td>
