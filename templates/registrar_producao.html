@@ -25,10 +25,21 @@
     background-color: #F5F7FA;
   }
 
-  @media print {
-    table.min-w-full tbody td,
-    table.min-w-full tbody th {
-      text-align: center;
+ @media print {
+    body * {
+      visibility: hidden;
+    }
+
+    .semana-impressao {
+      visibility: visible;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+
+    .semana-impressao:not(.mostrar-para-impressao) {
+      display: none !important;
     }
   }
 </style>
@@ -51,28 +62,27 @@
       });
     }
 
-    function imprimirSelecionadas() {
-      const selecionadas = Array.from(document.querySelectorAll('.semana-selector:checked'))
-        .map(cb => cb.value);
-      document.querySelectorAll('.semana-impressao').forEach(div => {
-        div.style.display = selecionadas.includes(div.dataset.semana) ? 'block' : 'none';
-      });
-      window.print();
-      document.querySelectorAll('.semana-impressao').forEach(div => {
-        div.style.display = 'block';
-      });
-    }
+  function imprimirSelecionadas() {
+    const selecionadas = Array.from(document.querySelectorAll('.semana-selector:checked'))
+      .map(cb => cb.value);
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const totalLinhas = {{ linhas }};
-      const semanas = {{ semanas|tojson }};
-      semanas.forEach(semana => {
-        for (let i = 0; i < totalLinhas; i++) {
-          limitarCheckboxesPorLinha(semana, i);
-        }
-      });
+    document.querySelectorAll('.semana-impressao').forEach(div => {
+      if (selecionadas.includes(div.dataset.semana)) {
+        div.classList.add('mostrar-para-impressao');
+      } else {
+        div.classList.remove('mostrar-para-impressao');
+      }
     });
-  </script>
+
+    window.print();
+
+    // Após imprimir, remove a classe auxiliar
+    document.querySelectorAll('.semana-impressao').forEach(div => {
+      div.classList.remove('mostrar-para-impressao');
+    });
+  }
+</script>
+
 </head>
 
 <body class="{{ 'bg-pink-100' if usuario.nome.upper() in ['SHIRLENE','ALINE','MARIANA','ANA LUCIA','CAROLINE','FLÁVIA','CRISTINA','SILVANA','SORAYA'] else 'bg-blue-100' }} p-6">
