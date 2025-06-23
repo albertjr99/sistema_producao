@@ -1,92 +1,43 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="p-6">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Acompanhamento Pessoal - {{ usuario.nome }}</h1>
-    <div class="flex gap-4">
-      <a href="{{ url_for('registrar_producao') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Voltar</a>
-      <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
-    </div>
-  </div>
+@app.route('/acompanhamento-pessoal')
+def acompanhamento_pessoal():
+    if 'usuario_id' not in session or session['usuario_tipo'] != 'analista':
+        flash('Acesso não autorizado.')
+        return redirect(url_for('index'))
 
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h2 class="text-xl font-semibold mb-4">Progresso Mensal</h2>
-    <div class="w-full h-4 bg-gray-200 rounded">
-      <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
-    </div>
-    <p class="text-sm mt-2">{{ total_feito }} de {{ meta }} processos</p>
-  </div>
+    usuario = Usuario.query.get(session['usuario_id'])
 
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h2 class="text-xl font-semibold mb-4">Gráfico Semanal</h2>
-    <canvas id="graficoProducao"></canvas>
-  </div>
+    mes = datetime.now().strftime('%B').capitalize()
+    meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    ano = 2025
+    mes_index = meses.index(mes) if mes in meses else 0
+    semanas = gerar_semanas(mes_index + 6, ano)
 
-  <div class="bg-white p-4 rounded shadow">
-    <h2 class="text-xl font-semibold mb-4">Contagem de Produção por Semana</h2>
-    {% for semana, contagem in totais.items() %}
-    <div class="mb-4">
-      <h3 class="font-semibold mb-2">Semana: {{ semana }}</h3>
-      <table class="min-w-full border text-sm">
-        <thead class="bg-blue-600 text-white">
-          <tr>
-            {% for campo in campos %}
-            <th class="border px-2 py-1">{{ campo.replace('_', ' ') | title }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {% for campo in campos %}
-            <td class="border px-2 py-1 text-center">{{ contagem[campo] }}</td>
-            {% endfor %}
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    {% endfor %}
-  </div>
+    campos = ['averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc',
+              'conf_dtc', 'in_68', 'dpor', 'registro_atos', 'ag_completar', 'outros']
 
-  <div class="mt-6">
-    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
-      Imprimir Página
-    </button>
-  </div>
-</div>
+    totais = {}
+    total_feito = 0
+    for semana in semanas:
+        contagem = {campo: 0 for campo in campos}
+        processos = LinhaProducao.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
+        for processo in processos:
+            for campo in campos:
+                if getattr(processo, campo):
+                    contagem[campo] += 1
+                    total_feito += 1
+        totais[semana] = contagem
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  const ctx = document.getElementById('graficoProducao').getContext('2d');
-  const semanas = {{ semanas|tojson }};
-  const campos = {{ campos|tojson }};
-  const totais = {{ totais|tojson }};
+    meta = 112 if usuario.modalidade == 'teletrabalho' else 100
+    percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
 
-  const dadosPorCampo = campos.map(campo => ({
-    label: campo.replace(/_/g, ' ').toUpperCase(),
-    data: semanas.map(semana => totais[semana][campo]),
-    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-    borderColor: 'rgba(54, 162, 235, 1)',
-    borderWidth: 1
-  }));
-
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: semanas,
-      datasets: dadosPorCampo
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: {
-          stacked: true
-        },
-        y: {
-          beginAtZero: true,
-          stacked: true
-        }
-      }
-    }
-  });
-</script>
-{% endblock %}
+    return render_template(
+        'acompanhamento_pessoal.html',
+        usuario=usuario,
+        semanas=semanas,
+        totais=totais,
+        campos=campos,
+        total_feito=total_feito,
+        meta=meta,
+        percentual_meta=percentual_meta,
+        mes=mes
+    )
