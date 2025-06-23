@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Acompanhamento Pessoal</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @media print { .nao-imprimir { display:none!important; } }
+  </style>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Acompanhamento Pessoal</h1>
+    <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 nao-imprimir">
+      Logoff
+    </a>
+  </div>
+
+  <div class="bg-white shadow rounded-lg p-4 mb-6 nao-imprimir">
+    <h2 class="font-semibold mb-2">Meta Mensal</h2>
+    <div class="w-full h-4 bg-gray-200 rounded">
+      <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
+    </div>
+    <p class="mt-2">{{ total_feito }} de {{ meta }} processos ({{ percentual_meta }}%)</p>
+  </div>
+
+  <div class="bg-gray-100 p-4 mb-6 nao-imprimir">
+    <canvas id="grafico" height="100"></canvas>
+  </div>
+
+  <div class="mb-6">
+    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 nao-imprimir">
+      Imprimir Relatório
+    </button>
+  </div>
+
+  <div class="bg-white shadow rounded-lg p-4">
+    {% for semana, contagem in totais.items() %}
+      <div class="mb-6">
+        <h3 class="font-semibold mb-2">Semana: {{ semana }}</h3>
+        <table class="w-full table-auto border text-sm">
+          <thead class="bg-blue-400 text-white">
+            <tr>
+              {% for campo, _ in contagem.items() %}
+                <th class="border px-2">{{ campo.replace('_',' ')|title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {% for _, valor in contagem.items() %}
+                <td class="border px-2 text-center">{{ valor }}</td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    const ctx = document.getElementById('grafico').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: {{ grafico.keys()|list|tojson }},
+        datasets: [{ label: '# de Processos', data: {{ grafico.values()|list|tojson }}, backgroundColor: 'rgba(54, 162, 235, 0.6)' }]
+      },
+      options: {
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  </script>
+</body>
+</html>
