@@ -91,6 +91,11 @@ def login():
 
     return 'Login inválido'
 
+@app.route('/logout')
+def logout():
+    session.clear()  # ou session.pop('usuario', None)
+    return redirect(url_for('login'))
+
 
 @app.route('/primeiro-acesso', methods=['POST'])
 def primeiro_acesso():
