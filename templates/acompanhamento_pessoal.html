@@ -2,55 +2,67 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Acompanhamento Pessoal</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <title>Acompanhamento Pessoal - {{ usuario.nome }}</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    @media print { .nao-imprimir { display:none!important; } }
+    @media print {
+      .no-print { display: none !important; }
+      .print-section { display: block !important; }
+    }
   </style>
 </head>
-<body class="bg-gray-100 p-6">
-  <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">Acompanhamento Pessoal</h1>
-    <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 nao-imprimir">
-      Logoff
-    </a>
+<body class="bg-blue-100 p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Acompanhamento Pessoal - {{ usuario.nome }}</h1>
+    <div class="flex gap-4">
+      <a href="{{ url_for('registrar_producao') }}" class="bg-gray-600 text-white px-4 py-2 rounded">Voltar</a>
+      <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded">Logoff</a>
+    </div>
   </div>
 
-  <div class="bg-white shadow rounded-lg p-4 mb-6 nao-imprimir">
-    <h2 class="font-semibold mb-2">Meta Mensal</h2>
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="text-lg font-semibold mb-2">Meta do Mês</h2>
     <div class="w-full h-4 bg-gray-200 rounded">
       <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
     </div>
-    <p class="mt-2">{{ total_feito }} de {{ meta }} processos ({{ percentual_meta }}%)</p>
+    <p class="mt-2 text-sm">{{ total_feito }} de {{ meta }} processos</p>
   </div>
 
-  <div class="bg-gray-100 p-4 mb-6 nao-imprimir">
-    <canvas id="grafico" height="100"></canvas>
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="text-lg font-semibold mb-2">Contagem por Semana</h2>
+    <canvas id="graficoSemanal" height="150"></canvas>
   </div>
 
-  <div class="mb-6">
-    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 nao-imprimir">
-      Imprimir Relatório
-    </button>
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="text-lg font-semibold mb-2">Selecionar Semanas para Impressão</h2>
+    <div class="flex flex-wrap gap-4 mb-4">
+      {% for semana in semanas %}
+        <label>
+          <input type="checkbox" class="semana-selector" value="{{ semana }}" checked>
+          {{ semana }}
+        </label>
+      {% endfor %}
+    </div>
+    <button onclick="imprimirSelecionadas()" class="bg-gray-700 text-white px-4 py-2 rounded">Imprimir Selecionadas</button>
   </div>
 
-  <div class="bg-white shadow rounded-lg p-4">
+  <div class="print-section">
     {% for semana, contagem in totais.items() %}
-      <div class="mb-6">
-        <h3 class="font-semibold mb-2">Semana: {{ semana }}</h3>
-        <table class="w-full table-auto border text-sm">
+      <div class="semana-impressao mb-6" data-semana="{{ semana }}">
+        <h3 class="font-semibold">Semana: {{ semana }}</h3>
+        <table class="min-w-full border text-sm">
           <thead class="bg-blue-400 text-white">
             <tr>
               {% for campo, _ in contagem.items() %}
-                <th class="border px-2">{{ campo.replace('_',' ')|title }}</th>
+                <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
             <tr>
               {% for _, valor in contagem.items() %}
-                <td class="border px-2 text-center">{{ valor }}</td>
+                <td class="border px-2 py-1 text-center">{{ valor }}</td>
               {% endfor %}
             </tr>
           </tbody>
@@ -60,15 +72,33 @@
   </div>
 
   <script>
-    const ctx = document.getElementById('grafico').getContext('2d');
-    new Chart(ctx, {
+    function imprimirSelecionadas() {
+      const selecionadas = Array.from(document.querySelectorAll('.semana-selector:checked'))
+        .map(cb => cb.value);
+      document.querySelectorAll('.semana-impressao').forEach(div => {
+        div.style.display = selecionadas.includes(div.dataset.semana) ? 'block' : 'none';
+      });
+      window.print();
+      document.querySelectorAll('.semana-impressao').forEach(div => {
+        div.style.display = 'block';
+      });
+    }
+
+    const ctx = document.getElementById('graficoSemanal').getContext('2d');
+    const grafico = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: {{ grafico.keys()|list|tojson }},
-        datasets: [{ label: '# de Processos', data: {{ grafico.values()|list|tojson }}, backgroundColor: 'rgba(54, 162, 235, 0.6)' }]
+        labels: {{ semanas|tojson }},
+        datasets: [{
+          label: 'Total de Processos',
+          data: {{ totais_lista|tojson }},
+          backgroundColor: '#3B82F6'
+        }]
       },
       options: {
-        scales: { y: { beginAtZero: true } }
+        scales: {
+          y: { beginAtZero: true }
+        }
       }
     });
   </script>
