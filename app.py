@@ -291,7 +291,7 @@ def acompanhamento_pessoal():
     total_feito = 0
     for semana in semanas:
         contagem = {campo: 0 for campo in campos}
-        processos = Processo.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
+        processos = LinhaProducao.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
         for processo in processos:
             for campo in campos:
                 if getattr(processo, campo):
