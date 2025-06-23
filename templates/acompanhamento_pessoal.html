@@ -2,102 +2,100 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Acompanhamento Pessoal - {{ usuario.nome }}</title>
+  <title>Acompanhamento Pessoal</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     @media print {
-      .no-print { display: none !important; }
-      .print-section { display: block !important; }
+      body * {
+        visibility: hidden;
+      }
+      .printable, .printable * {
+        visibility: visible;
+      }
+      .printable {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body class="bg-blue-100 p-6">
-  <div class="flex justify-between items-center mb-6">
+  <div class="flex items-center justify-between mb-4">
     <h1 class="text-2xl font-bold">Acompanhamento Pessoal - {{ usuario.nome }}</h1>
-    <div class="flex gap-4">
-      <a href="{{ url_for('registrar_producao') }}" class="bg-gray-600 text-white px-4 py-2 rounded">Voltar</a>
-      <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded">Logoff</a>
+    <div class="flex space-x-2">
+      <a href="{{ url_for('registrar_producao') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700">Voltar</a>
+      <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
     </div>
   </div>
 
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h2 class="text-lg font-semibold mb-2">Meta do Mês</h2>
-    <div class="w-full h-4 bg-gray-200 rounded">
-      <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
-    </div>
-    <p class="mt-2 text-sm">{{ total_feito }} de {{ meta }} processos</p>
-  </div>
-
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h2 class="text-lg font-semibold mb-2">Contagem por Semana</h2>
-    <canvas id="graficoSemanal" height="150"></canvas>
-  </div>
-
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h2 class="text-lg font-semibold mb-2">Selecionar Semanas para Impressão</h2>
-    <div class="flex flex-wrap gap-4 mb-4">
-      {% for semana in semanas %}
-        <label>
-          <input type="checkbox" class="semana-selector" value="{{ semana }}" checked>
-          {{ semana }}
-        </label>
-      {% endfor %}
-    </div>
-    <button onclick="imprimirSelecionadas()" class="bg-gray-700 text-white px-4 py-2 rounded">Imprimir Selecionadas</button>
-  </div>
-
-  <div class="print-section">
-    {% for semana, contagem in totais.items() %}
-      <div class="semana-impressao mb-6" data-semana="{{ semana }}">
-        <h3 class="font-semibold">Semana: {{ semana }}</h3>
-        <table class="min-w-full border text-sm">
-          <thead class="bg-blue-400 text-white">
-            <tr>
-              {% for campo, _ in contagem.items() %}
-                <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {% for _, valor in contagem.items() %}
-                <td class="border px-2 py-1 text-center">{{ valor }}</td>
-              {% endfor %}
-            </tr>
-          </tbody>
-        </table>
+  <div class="mb-6">
+    <div class="bg-white shadow rounded-lg p-4">
+      <h2 class="font-semibold text-lg mb-2">Meta Mensal</h2>
+      <div class="w-full h-4 bg-gray-200 rounded">
+        <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
       </div>
+      <p class="text-sm mt-2">{{ total_feito }} de {{ meta }} processos</p>
+    </div>
+  </div>
+
+  <div class="mb-6 bg-white shadow rounded-lg p-4 printable">
+    <h2 class="text-xl font-semibold mb-4">Contagem Semanal</h2>
+    {% for semana, campos in totais.items() %}
+    <div class="mb-4">
+      <h3 class="font-semibold mb-2">Semana: {{ semana }}</h3>
+      <table class="min-w-full border text-sm">
+        <thead>
+          <tr>
+            {% for campo in campos %}
+            <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {% for valor in campos.values() %}
+            <td class="border px-2 py-1 text-center">{{ valor }}</td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
     {% endfor %}
   </div>
 
-  <script>
-    function imprimirSelecionadas() {
-      const selecionadas = Array.from(document.querySelectorAll('.semana-selector:checked'))
-        .map(cb => cb.value);
-      document.querySelectorAll('.semana-impressao').forEach(div => {
-        div.style.display = selecionadas.includes(div.dataset.semana) ? 'block' : 'none';
-      });
-      window.print();
-      document.querySelectorAll('.semana-impressao').forEach(div => {
-        div.style.display = 'block';
-      });
-    }
+  <div class="mb-6 bg-white shadow rounded-lg p-4 printable">
+    <h2 class="text-xl font-semibold mb-4">Gráfico de Produção</h2>
+    <canvas id="graficoProducao"></canvas>
+  </div>
 
-    const ctx = document.getElementById('graficoSemanal').getContext('2d');
-    const grafico = new Chart(ctx, {
+  <div class="text-right">
+    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
+      Imprimir
+    </button>
+  </div>
+
+  <script>
+    const ctx = document.getElementById('graficoProducao').getContext('2d');
+    new Chart(ctx, {
       type: 'bar',
       data: {
         labels: {{ semanas|tojson }},
         datasets: [{
-          label: 'Total de Processos',
+          label: 'Atividades por Semana',
           data: {{ totais_lista|tojson }},
-          backgroundColor: '#3B82F6'
+          backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
         }]
       },
       options: {
         scales: {
-          y: { beginAtZero: true }
+          y: {
+            beginAtZero: true
+          }
         }
       }
     });
