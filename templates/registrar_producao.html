@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Registrar Produção - {{ usuario.nome }}</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
   <style>
     table.min-w-full tbody td,
     table.min-w-full tbody th {
@@ -26,17 +27,19 @@
 
     @media print {
       body * {
-        display: none !important;
+        visibility: hidden;
       }
 
-      .semana-impressao.imprimir {
-        display: block !important;
-        position: relative;
+      .impressao-container,
+      .impressao-container * {
+        visibility: visible;
       }
 
-      .semana-impressao.imprimir * {
-        display: block !important;
-        visibility: visible !important;
+      .impressao-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
       }
     }
   </style>
@@ -56,25 +59,21 @@
     }
 
     function imprimirSelecionadas() {
-      // Limpa qualquer impressão anterior
-      document.querySelectorAll('.semana-impressao').forEach(div => {
-        div.classList.remove('imprimir');
-      });
-
-      // Marca apenas os selecionados
       const selecionadas = Array.from(document.querySelectorAll('.semana-selector:checked'))
         .map(cb => cb.value);
 
-      selecionadas.forEach(valor => {
-        const div = document.querySelector(`.semana-impressao[data-semana="${valor}"]`);
-        if (div) div.classList.add('imprimir');
+      document.querySelectorAll('.semana-impressao').forEach(div => {
+        if (selecionadas.includes(div.dataset.semana)) {
+          div.style.display = 'block';
+        } else {
+          div.style.display = 'none';
+        }
       });
 
       window.print();
 
-      // Após a impressão, remove a marcação
       document.querySelectorAll('.semana-impressao').forEach(div => {
-        div.classList.remove('imprimir');
+        div.style.display = '';
       });
     }
 
@@ -106,6 +105,7 @@
   </div>
 
   <form method="post">
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div class="bg-white shadow rounded-lg p-4">
         <h2 class="font-semibold text-lg mb-2">Meta Mensal</h2>
@@ -128,7 +128,7 @@
           <h3 class="font-semibold mb-2">Semana: {{ semana }}</h3>
           <table class="min-w-full border text-sm">
             <thead>
-              <tr class="#4A90E2">
+              <tr>
                 {% for campo in campos %}
                 <th class="border px-2 py-1">{{ campo.replace('_', ' ') | title }}</th>
                 {% endfor %}
@@ -150,7 +150,7 @@
         <h3 class="font-semibold mb-2">Total do Mês</h3>
         <table class="min-w-full border text-sm">
           <thead>
-            <tr class="#4A90E2">
+            <tr>
               {% for campo in campos %}
               <th class="border px-2 py-1">{{ campo.replace('_', ' ') | title }}</th>
               {% endfor %}
@@ -182,51 +182,53 @@
       </button>
     </div>
 
-    {% for semana in semanas %}
-    <div class="semana-impressao mb-6" data-semana="{{ semana }}">
-      <h2 class="text-xl font-semibold mb-2">Semana: {{ semana }}</h2>
-      <table class="min-w-full bg-white border">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="border px-2">Linha</th>
-            <th class="border px-2">Nº Processo</th>
-            <th class="border px-2">Requerente</th>
-            <th class="border px-2">Fase</th>
-            {% for campo in campos %}
-            <th class="border px-2">{{ campo.replace('_', ' ') | title }}</th>
+    <!-- Aqui começa a área que será impressa -->
+    <div class="impressao-container">
+      {% for semana in semanas %}
+      <div class="semana-impressao mb-6" data-semana="{{ semana }}">
+        <h2 class="text-xl font-semibold mb-2">Semana: {{ semana }}</h2>
+        <table class="min-w-full bg-white border">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="border px-2">Linha</th>
+              <th class="border px-2">Nº Processo</th>
+              <th class="border px-2">Requerente</th>
+              <th class="border px-2">Fase</th>
+              {% for campo in campos %}
+              <th class="border px-2">{{ campo.replace('_', ' ') | title }}</th>
+              {% endfor %}
+              <th class="border px-2">Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in range(linhas) %}
+            <tr>
+              <td class="border px-2">{{ i+1 }}</td>
+              <td class="border px-2">{{ processos_info[semana][i].numero_processo or '' }}</td>
+              <td class="border px-2">{{ processos_info[semana][i].requerente or '' }}</td>
+              <td class="border px-2">{{ processos_info[semana][i].fase or '' }}</td>
+              {% for campo in campos %}
+              <td class="border px-2">
+                <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}" {% if processos_info[semana][i] and processos_info[semana][i][campo] %}checked{% endif %}>
+              </td>
+              {% endfor %}
+              <td class="border px-2">
+                <input type="text" name="{{ semana }}_{{ i }}_obs" class="w-full border rounded p-1" value="{{ processos_info[semana][i].observacao if processos_info[semana][i] }}">
+              </td>
+              <input type="hidden" name="{{ semana }}_{{ i }}_indice_linha" value="{{ i }}">
+            </tr>
             {% endfor %}
-            <th class="border px-2">Observação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for i in range(linhas) %}
-          <tr>
-            <td class="border px-2">{{ i+1 }}</td>
-            <td class="border px-2">{{ processos_info[semana][i].numero_processo or '' }}</td>
-            <td class="border px-2">{{ processos_info[semana][i].requerente or '' }}</td>
-            <td class="border px-2">{{ processos_info[semana][i].fase or '' }}</td>
-            {% for campo in campos %}
-            <td class="border px-2">
-              <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}" {% if processos_info[semana][i] and processos_info[semana][i][campo] %}checked{% endif %}>
-            </td>
-            {% endfor %}
-            <td class="border px-2">
-              <input type="text" name="{{ semana }}_{{ i }}_obs" class="w-full border rounded p-1" value="{{ processos_info[semana][i].observacao if processos_info[semana][i] }}">
-            </td>
-            <input type="hidden" name="{{ semana }}_{{ i }}_indice_linha" value="{{ i }}">
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
 
-      <div class="mt-4 text-right">
-        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-          Salvar Produção
-        </button>
+        <div class="mt-4 text-right">
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Salvar Produção
+          </button>
+        </div>
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </form>
 </body>
 </html>
-
