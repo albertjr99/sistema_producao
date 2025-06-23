@@ -279,11 +279,9 @@ def acompanhamento_pessoal():
 
     usuario = Usuario.query.get(session['usuario_id'])
 
-    # Pegando o mês atual
     mes = datetime.now().strftime('%B').capitalize()
 
-    # Campos e semanas
-    semanas = obter_semanas_do_mes(mes)
+    semanas = gerar_semanas(datetime.now().month, datetime.now().year)
     campos = ['averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc',
               'conf_dtc', 'in_68', 'dpor', 'registro_atos', 'ag_completar', 'outros']
 
@@ -299,7 +297,7 @@ def acompanhamento_pessoal():
                     total_feito += 1
         totais[semana] = contagem
 
-    meta = 100
+    meta = 112 if usuario.modalidade == 'teletrabalho' else 100
     percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
 
     return render_template(
