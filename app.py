@@ -272,19 +272,21 @@ def painel_gerente():
         alertas=alertas
     )
 @app.route('/acompanhamento-pessoal')
-@login_required
 def acompanhamento_pessoal():
-    usuario = current_user
+    if 'usuario_id' not in session or session.get('usuario_tipo') != 'analista':
+        flash('Acesso não autorizado.')
+        return redirect(url_for('index'))
 
-    # Pegando o mês atual (ou você pode adaptar para pegar de parâmetro ou sessão)
+    usuario = Usuario.query.get(session['usuario_id'])
+
+    # Pegando o mês atual
     mes = datetime.now().strftime('%B').capitalize()
 
-    # Obtenha as mesmas variáveis que você usa na página registrar_producao:
-    semanas = obter_semanas_do_mes(mes)  # você pode já ter essa função
+    # Campos e semanas
+    semanas = obter_semanas_do_mes(mes)
     campos = ['averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc',
               'conf_dtc', 'in_68', 'dpor', 'registro_atos', 'ag_completar', 'outros']
 
-    # Calcular totais por semana
     totais = {}
     total_feito = 0
     for semana in semanas:
@@ -297,7 +299,6 @@ def acompanhamento_pessoal():
                     total_feito += 1
         totais[semana] = contagem
 
-    # Meta (se tiver lógica de meta por usuário, substitua aqui)
     meta = 100
     percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
 
