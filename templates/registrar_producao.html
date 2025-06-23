@@ -90,19 +90,27 @@
 </head>
 
 <body class="{{ 'bg-pink-100' if usuario.nome.upper() in ['SHIRLENE','ALINE','MARIANA','ANA LUCIA','CAROLINE','FLÁVIA','CRISTINA','SILVANA','SORAYA'] else 'bg-blue-100' }} p-6">
-  <div class="flex items-center justify-between mb-4">
-    <div>
-      <h1 class="text-2xl font-bold">Registrar Produção - {{ usuario.nome }}</h1>
-      <div class="flex items-center mt-2 space-x-2">
-        <a href="{{ url_for('registrar_producao', mes=mes_anterior) }}" class="text-blue-600 hover:text-blue-800">&#8592; {{ mes_anterior }}</a>
-        <span class="font-semibold">{{ mes_atual }}</span>
-        <a href="{{ url_for('registrar_producao', mes=mes_posterior) }}" class="text-blue-600 hover:text-blue-800">{{ mes_posterior }} &#8594;</a>
+  <div class="container mx-auto px-4"> <!-- Início do container centralizador -->
+
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-2xl font-bold">Registrar Produção - {{ usuario.nome }}</h1>
+        <div class="flex items-center mt-2 space-x-2">
+          <a href="{{ url_for('registrar_producao', mes=mes_anterior) }}" class="text-blue-600 hover:text-blue-800">&#8592; {{ mes_anterior }}</a>
+          <span class="font-semibold">{{ mes_atual }}</span>
+          <a href="{{ url_for('registrar_producao', mes=mes_posterior) }}" class="text-blue-600 hover:text-blue-800">{{ mes_posterior }} &#8594;</a>
+        </div>
+      </div>
+      <div class="flex space-x-2">
+        <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
+        <a href="{{ url_for('acompanhamento_pessoal') }}" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Acompanhar Produção Pessoal</a>
       </div>
     </div>
-    <div class="flex space-x-2">
-  <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
-  <a href="{{ url_for('acompanhamento_pessoal') }}" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Acompanhar Produção Pessoal</a>
-</div>
+
+    <!-- ...continue com seu conteúdo normalmente... -->
+
+  </div> <!-- Fim do container -->
+</body>
 
 
 
