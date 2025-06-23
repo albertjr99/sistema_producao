@@ -271,40 +271,51 @@ def painel_gerente():
         totais_anuais=totais_anuais,
         alertas=alertas
     )
-@app.route('/acompanhamento_pessoal')
+@app.route('/acompanhamento-pessoal')
 def acompanhamento_pessoal():
     if 'usuario_id' not in session or session['usuario_tipo'] != 'analista':
         flash('Acesso não autorizado.')
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))
 
     usuario = Usuario.query.get(session['usuario_id'])
-    meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-    mes_atual = 'Junho'  # ou pegar do args
+    mes = request.args.get('mes') or 'Junho'
     ano = 2025
-    mes_num = meses.index(mes_atual) + 6
-    semanas = gerar_semanas(mes_num, ano)
-    campos = [ 'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc', 'conf_dtc', 'in_68', 'dpor', 'registro_atos', 'ag_completar', 'outros' ]
+    meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    mes_index = meses.index(mes)
+    semanas = gerar_semanas(mes_index + 6, ano)
 
-    totais = {semana: {c:0 for c in campos} for semana in semanas}
+    campos = [
+        'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc',
+        'conf_ctc', 'dtc', 'conf_dtc', 'in_68', 'dpor',
+        'registro_atos', 'ag_completar', 'outros'
+    ]
+
+    totais = {semana: {campo: 0 for campo in campos} for semana in semanas}
+    totais_lista = []
+
     for semana in semanas:
-        procs = LinhaProducao.query.filter_by(usuario_id=usuario.id, mes=mes_atual, semana=semana).all()
-        for p in procs:
-            for c in campos:
-                if getattr(p,c):
-                    totais[semana][c] += 1
+        producoes = LinhaProducao.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
+        for producao in producoes:
+            for campo in campos:
+                if getattr(producao, campo):
+                    totais[semana][campo] += 1
+        totais_lista.append(sum(totais[semana].values()))
 
-    total_feito = sum(sum(t.values()) for t in totais.values())
-    meta = 112 if usuario.modalidade=='teletrabalho' else 100
-    percentual_meta = min(int((total_feito/meta)*100), 100)
+    total_feito = sum(totais_lista)
+    meta = 112 if usuario.modalidade == 'teletrabalho' else 100
+    percentual_meta = min(int((total_feito / meta) * 100), 100)
 
-    # Dados para gráfico: por semana soma de totais
-    grafico = {sem: sum(t.values()) for sem, t in totais.items()}
-
-    return render_template('acompanhamento_pessoal.html',
-        semanas=semanas, totais=totais,
-        total_feito=total_feito, meta=meta, percentual_meta=percentual_meta,
-        grafico=grafico
+    return render_template(
+        'acompanhamento_pessoal.html',
+        usuario=usuario,
+        semanas=semanas,
+        totais=totais,
+        totais_lista=totais_lista,
+        total_feito=total_feito,
+        percentual_meta=percentual_meta,
+        meta=meta
     )
+
 
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
 def editar_producao(id):
