@@ -272,48 +272,45 @@ def painel_gerente():
         alertas=alertas
     )
 @app.route('/acompanhamento-pessoal')
+@login_required
 def acompanhamento_pessoal():
-    if 'usuario_id' not in session or session['usuario_tipo'] != 'analista':
-        flash('Acesso não autorizado.')
-        return redirect(url_for('index'))
+    usuario = current_user
 
-    usuario = Usuario.query.get(session['usuario_id'])
-    mes = request.args.get('mes') or 'Junho'
-    ano = 2025
-    meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-    mes_index = meses.index(mes)
-    semanas = gerar_semanas(mes_index + 6, ano)
+    # Pegando o mês atual (ou você pode adaptar para pegar de parâmetro ou sessão)
+    mes = datetime.now().strftime('%B').capitalize()
 
-    campos = [
-        'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc',
-        'conf_ctc', 'dtc', 'conf_dtc', 'in_68', 'dpor',
-        'registro_atos', 'ag_completar', 'outros'
-    ]
+    # Obtenha as mesmas variáveis que você usa na página registrar_producao:
+    semanas = obter_semanas_do_mes(mes)  # você pode já ter essa função
+    campos = ['averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc',
+              'conf_dtc', 'in_68', 'dpor', 'registro_atos', 'ag_completar', 'outros']
 
-    totais = {semana: {campo: 0 for campo in campos} for semana in semanas}
-    totais_lista = []
-
+    # Calcular totais por semana
+    totais = {}
+    total_feito = 0
     for semana in semanas:
-        producoes = LinhaProducao.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
-        for producao in producoes:
+        contagem = {campo: 0 for campo in campos}
+        processos = Processo.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
+        for processo in processos:
             for campo in campos:
-                if getattr(producao, campo):
-                    totais[semana][campo] += 1
-        totais_lista.append(sum(totais[semana].values()))
+                if getattr(processo, campo):
+                    contagem[campo] += 1
+                    total_feito += 1
+        totais[semana] = contagem
 
-    total_feito = sum(totais_lista)
-    meta = 112 if usuario.modalidade == 'teletrabalho' else 100
-    percentual_meta = min(int((total_feito / meta) * 100), 100)
+    # Meta (se tiver lógica de meta por usuário, substitua aqui)
+    meta = 100
+    percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
 
     return render_template(
         'acompanhamento_pessoal.html',
         usuario=usuario,
         semanas=semanas,
         totais=totais,
-        totais_lista=totais_lista,
+        campos=campos,
         total_feito=total_feito,
+        meta=meta,
         percentual_meta=percentual_meta,
-        meta=meta
+        mes=mes
     )
 
 
