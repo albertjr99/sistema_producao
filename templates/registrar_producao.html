@@ -192,13 +192,8 @@
   <td class="border px-2">
     <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}" {% if processos_info[semana][i] and processos_info[semana][i][campo] %}checked{% endif %}>
   </td>
-{% endfor %}
-<td class="border px-2">
-  <input type="text" name="{{ semana }}_{{ i }}_obs" class="w-full border rounded p-1" value="{{ processos_info[semana][i].observacao if processos_info[semana][i] }}">
-</td>
-<td>
   <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Salvar Produção</button>
-</td>
+{% endfor %}
 
             <td class="border px-2">
             <input type="text" name="{{ semana }}_{{ i }}_obs" class="w-full border rounded p-1" value="{{ processos_info[semana][i].observacao if processos_info[semana][i] }}">
