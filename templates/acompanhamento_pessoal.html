@@ -1,63 +1,44 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8">
-  <title>Acompanhamento Pessoal</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      .printable, .printable * {
-        visibility: visible;
-      }
-      .printable {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-      }
-    }
-  </style>
-</head>
-<body class="bg-blue-100 p-6">
-  <div class="flex items-center justify-between mb-4">
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6">
+  <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold">Acompanhamento Pessoal - {{ usuario.nome }}</h1>
-    <div class="flex space-x-2">
-      <a href="{{ url_for('registrar_producao') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700">Voltar</a>
+    <div class="flex gap-4">
+      <a href="{{ url_for('registrar_producao') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Voltar</a>
       <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
     </div>
   </div>
 
-  <div class="mb-6">
-    <div class="bg-white shadow rounded-lg p-4">
-      <h2 class="font-semibold text-lg mb-2">Meta Mensal</h2>
-      <div class="w-full h-4 bg-gray-200 rounded">
-        <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
-      </div>
-      <p class="text-sm mt-2">{{ total_feito }} de {{ meta }} processos</p>
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="text-xl font-semibold mb-4">Progresso Mensal</h2>
+    <div class="w-full h-4 bg-gray-200 rounded">
+      <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
     </div>
+    <p class="text-sm mt-2">{{ total_feito }} de {{ meta }} processos</p>
   </div>
 
-  <div class="mb-6 bg-white shadow rounded-lg p-4 printable">
-    <h2 class="text-xl font-semibold mb-4">Contagem Semanal</h2>
-    {% for semana, campos in totais.items() %}
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <h2 class="text-xl font-semibold mb-4">Gráfico Semanal</h2>
+    <canvas id="graficoProducao"></canvas>
+  </div>
+
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">Contagem de Produção por Semana</h2>
+    {% for semana, contagem in totais.items() %}
     <div class="mb-4">
       <h3 class="font-semibold mb-2">Semana: {{ semana }}</h3>
       <table class="min-w-full border text-sm">
-        <thead>
+        <thead class="bg-blue-600 text-white">
           <tr>
             {% for campo in campos %}
-            <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
+            <th class="border px-2 py-1">{{ campo.replace('_', ' ') | title }}</th>
             {% endfor %}
           </tr>
         </thead>
         <tbody>
           <tr>
-            {% for valor in campos.values() %}
-            <td class="border px-2 py-1 text-center">{{ valor }}</td>
+            {% for campo in campos %}
+            <td class="border px-2 py-1 text-center">{{ contagem[campo] }}</td>
             {% endfor %}
           </tr>
         </tbody>
@@ -66,39 +47,46 @@
     {% endfor %}
   </div>
 
-  <div class="mb-6 bg-white shadow rounded-lg p-4 printable">
-    <h2 class="text-xl font-semibold mb-4">Gráfico de Produção</h2>
-    <canvas id="graficoProducao"></canvas>
-  </div>
-
-  <div class="text-right">
+  <div class="mt-6">
     <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
-      Imprimir
+      Imprimir Página
     </button>
   </div>
+</div>
 
-  <script>
-    const ctx = document.getElementById('graficoProducao').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: {{ semanas|tojson }},
-        datasets: [{
-          label: 'Atividades por Semana',
-          data: {{ totais_lista|tojson }},
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true
-          }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('graficoProducao').getContext('2d');
+  const semanas = {{ semanas|tojson }};
+  const campos = {{ campos|tojson }};
+  const totais = {{ totais|tojson }};
+
+  const dadosPorCampo = campos.map(campo => ({
+    label: campo.replace(/_/g, ' ').toUpperCase(),
+    data: semanas.map(semana => totais[semana][campo]),
+    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+    borderColor: 'rgba(54, 162, 235, 1)',
+    borderWidth: 1
+  }));
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: semanas,
+      datasets: dadosPorCampo
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          stacked: true
+        },
+        y: {
+          beginAtZero: true,
+          stacked: true
         }
       }
-    });
-  </script>
-</body>
-</html>
+    }
+  });
+</script>
+{% endblock %}
