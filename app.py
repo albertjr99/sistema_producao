@@ -272,16 +272,12 @@ def painel_gerente():
         alertas=alertas
     )
 @app.route('/acompanhamento-pessoal')
+@login_required
 def acompanhamento_pessoal():
-    if 'usuario_id' not in session or session.get('usuario_tipo') != 'analista':
-        flash('Acesso não autorizado.')
-        return redirect(url_for('index'))
-
-    usuario = Usuario.query.get(session['usuario_id'])
-
+    usuario = current_user
     mes = datetime.now().strftime('%B').capitalize()
 
-    semanas = gerar_semanas(datetime.now().month, datetime.now().year)
+    semanas = obter_semanas_do_mes(mes)
     campos = ['averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc',
               'conf_dtc', 'in_68', 'dpor', 'registro_atos', 'ag_completar', 'outros']
 
@@ -289,7 +285,7 @@ def acompanhamento_pessoal():
     total_feito = 0
     for semana in semanas:
         contagem = {campo: 0 for campo in campos}
-        processos = LinhaProducao.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
+        processos = Processo.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
         for processo in processos:
             for campo in campos:
                 if getattr(processo, campo):
@@ -297,7 +293,7 @@ def acompanhamento_pessoal():
                     total_feito += 1
         totais[semana] = contagem
 
-    meta = 112 if usuario.modalidade == 'teletrabalho' else 100
+    meta = 100  # Adapte conforme necessário
     percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
 
     return render_template(
@@ -311,6 +307,7 @@ def acompanhamento_pessoal():
         percentual_meta=percentual_meta,
         mes=mes
     )
+
 
 
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
