@@ -3,10 +3,11 @@
 <div class="p-6">
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold">Acompanhamento Pessoal - {{ usuario.nome }}</h1>
-    <div class="flex gap-4">
-      <a href="{{ url_for('registrar_producao') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Voltar</a>
-      <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
-    </div>
+    <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
+  </div>
+
+  <div class="mb-6">
+    <a href="{{ url_for('registrar_producao') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">← Voltar</a>
   </div>
 
   <div class="bg-white p-4 rounded shadow mb-6">
