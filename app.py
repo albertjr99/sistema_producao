@@ -3,11 +3,15 @@ from flask_login import login_required
 from flask import session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 from flask_migrate import Migrate
 import calendar
 
 app = Flask(__name__)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # nome da função que trata o login
 app.secret_key = 'chave-secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///producao.db'
 db = SQLAlchemy(app)
