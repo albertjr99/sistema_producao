@@ -274,64 +274,71 @@ def painel_gerente():
 @app.route('/acompanhamento-pessoal')
 @login_required
 def acompanhamento_pessoal():
-    # 1) somente analistas podem acessar
+    # só analistas
     if current_user.tipo != 'analista':
         flash('Acesso não autorizado.')
         return redirect(url_for('login'))
 
     usuario = current_user
 
-    # 2) montar o nome do mês em Português exatamente igual ao que você salva no DB
-    meses_pt = [
-        'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-        'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
-    ]
-    agora = datetime.now()
-    mes_num = agora.month
-    mes = meses_pt[mes_num - 1]       # ex: 'Junho'
-    ano = agora.year                  # ex: 2025
+    # 1) mês selecionado (ou atual)
+    mes_sel = request.args.get('mes')
+    hoje = datetime.now()
+    if mes_sel not in MESES_PT:
+        mes_num = hoje.month
+        mes_sel = MESES_PT[mes_num - 1]
+    else:
+        mes_num = MESES_PT.index(mes_sel) + 1
 
-    # 3) gerar as semanas (mesmo comportamento que registrar_producao)
+    # 2) gera semanas e totais por semana
+    ano = hoje.year
     semanas = gerar_semanas(mes_num, ano)
 
-    # 4) os campos de checkbox que você já tem
     campos = [
-        'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
-        'dtc','conf_dtc','in_68','dpor','registro_atos',
-        'ag_completar','outros'
+      'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+      'dtc','conf_dtc','in_68','dpor','registro_atos',
+      'ag_completar','outros'
     ]
 
     totais = {}
     total_feito = 0
     for semana in semanas:
-        contagem = {campo: 0 for campo in campos}
-        # consulta exata ao mesmo modelo que você popula
+        cont = {c:0 for c in campos}
         producoes = LinhaProducao.query.filter_by(
-            usuario_id=usuario.id,
-            mes=mes,
-            semana=semana
+            usuario_id=usuario.id, mes=mes_sel, semana=semana
         ).all()
         for p in producoes:
-            for campo in campos:
-                if getattr(p, campo, False):
-                    contagem[campo] += 1
+            for c in campos:
+                if getattr(p, c, False):
+                    cont[c] += 1
                     total_feito += 1
-        totais[semana] = contagem
+        totais[semana] = cont
 
-    # 5) mesma lógica de meta que usar na página de produção
-    meta = 112 if usuario.modalidade == 'teletrabalho' else 100
-    percentual_meta = round((total_feito / meta) * 100, 1) if meta else 0
+    # 3) total do mês
+    total_mes = {c: sum(t[c] for t in totais.values()) for c in campos}
+
+    # 4) meta / % igual ao registrar_producao
+    meta = 112 if usuario.modalidade=='teletrabalho' else 100
+    percentual_meta = round((total_feito/meta)*100,1) if meta else 0
+
+    # 5) qual semana selecionada (ou “Mês inteiro”)
+    semana_sel = request.args.get('semana','Mês inteiro')
+    if semana_sel not in semanas and semana_sel!='Mês inteiro':
+        semana_sel = 'Mês inteiro'
 
     return render_template(
-        'acompanhamento_pessoal.html',
-        usuario=usuario,
-        semanas=semanas,
-        totais=totais,
-        campos=campos,
-        total_feito=total_feito,
-        meta=meta,
-        percentual_meta=percentual_meta,
-        mes=mes
+      'acompanhamento_pessoal.html',
+      usuario=usuario,
+      meses=MESES_PT,
+      mes=mes_sel,
+      semanas=semanas,
+      selected_semana=semana_sel,
+      totais=totais,
+      total_mes=total_mes,
+      campos=campos,
+      total_feito=total_feito,
+      meta=meta,
+      percentual_meta=percentual_meta
     )
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
 @login_required
