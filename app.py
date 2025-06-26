@@ -278,71 +278,60 @@ def painel_gerente():
 @app.route('/acompanhamento-pessoal')
 @login_required
 def acompanhamento_pessoal():
-    # só analistas
+    # só analistas podem acessar
     if current_user.tipo != 'analista':
         flash('Acesso não autorizado.')
         return redirect(url_for('login'))
 
-    usuario = current_user
+    # mês e ano atuais
+    agora = datetime.now()
+    mes_num = agora.month                # 1–12
+    mes_str = MESES_PT[mes_num - 1]      # 'Junho', etc.
+    ano = agora.year
 
-    # 1) mês selecionado (ou atual)
-    mes_sel = request.args.get('mes')
-    hoje = datetime.now()
-    if mes_sel not in MESES_PT:
-        mes_num = hoje.month
-        mes_sel = MESES_PT[mes_num - 1]
-    else:
-        mes_num = MESES_PT.index(mes_sel) + 1
-
-    # 2) gera semanas e totais por semana
-    ano = hoje.year
+    # gera as semanas do mês corrente
     semanas = gerar_semanas(mes_num, ano)
 
     campos = [
-      'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
-      'dtc','conf_dtc','in_68','dpor','registro_atos',
-      'ag_completar','outros'
+        'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc',
+        'conf_ctc', 'dtc', 'conf_dtc', 'in_68',
+        'dpor', 'registro_atos', 'ag_completar', 'outros'
     ]
 
     totais = {}
     total_feito = 0
+
+    # percorre cada semana e conta por campo em LinhaProducao
     for semana in semanas:
-        cont = {c:0 for c in campos}
+        contagem = {campo: 0 for campo in campos}
         producoes = LinhaProducao.query.filter_by(
-            usuario_id=usuario.id, mes=mes_sel, semana=semana
+            usuario_id=current_user.id,
+            mes=mes_str,
+            semana=semana
         ).all()
+
         for p in producoes:
-            for c in campos:
-                if getattr(p, c, False):
-                    cont[c] += 1
+            for campo in campos:
+                if getattr(p, campo, False):
+                    contagem[campo] += 1
                     total_feito += 1
-        totais[semana] = cont
 
-    # 3) total do mês
-    total_mes = {c: sum(t[c] for t in totais.values()) for c in campos}
+        totais[semana] = contagem
 
-    # 4) meta / % igual ao registrar_producao
-    meta = 112 if usuario.modalidade=='teletrabalho' else 100
-    percentual_meta = round((total_feito/meta)*100,1) if meta else 0
-
-    # 5) qual semana selecionada (ou “Mês inteiro”)
-    semana_sel = request.args.get('semana','Mês inteiro')
-    if semana_sel not in semanas and semana_sel!='Mês inteiro':
-        semana_sel = 'Mês inteiro'
+    # meta de processos
+    meta = 112 if current_user.modalidade == 'teletrabalho' else 100
+    percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
 
     return render_template(
-      'acompanhamento_pessoal.html',
-      usuario=usuario,
-      meses=MESES_PT,
-      mes=mes_sel,
-      semanas=semanas,
-      selected_semana=semana_sel,
-      totais=totais,
-      total_mes=total_mes,
-      campos=campos,
-      total_feito=total_feito,
-      meta=meta,
-      percentual_meta=percentual_meta
+        'acompanhamento_pessoal.html',
+        usuario=current_user,
+        semanas=semanas,
+        totais=totais,
+        campos=campos,
+        total_feito=total_feito,
+        meta=meta,
+        percentual_meta=percentual_meta,
+        mes=mes_str
     )
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
 @login_required
