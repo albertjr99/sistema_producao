@@ -1,35 +1,35 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash
-from flask_login import login_required
-from flask import session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user,  UserMixin
-from datetime import datetime, timedelta
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from flask_migrate import Migrate
-from flask_login import UserMixin
+from datetime import datetime, timedelta
 import calendar
 
+# --- Configuração da aplicação ---
 app = Flask(__name__)
 app.secret_key = 'chave-secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///producao.db'
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'  # nome da função que trata o login
-
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
 class Usuario(db.Model, UserMixin):
+    __tablename__ = 'usuario'
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     senha = db.Column(db.String(200), nullable=False)
-    tipo = db.Column(db.String(20), nullable=False)
-    modalidade = db.Column(db.String(20))
+    tipo = db.Column(db.String(20), nullable=False)  # analista, estagiaria, gerente
+    modalidade = db.Column(db.String(20))           # presencial ou teletrabalho
     primeiro_acesso_realizado = db.Column(db.Boolean, default=False)
 
 class LinhaProducao(db.Model):
+    __tablename__ = 'linha_producao'
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     mes = db.Column(db.String(20), nullable=False)
@@ -55,10 +55,10 @@ class LinhaProducao(db.Model):
 
     usuario = db.relationship('Usuario', backref='linhas')
 
-def gerar_semanas(mes, ano):
+def gerar_semanas(mes_num, ano):
     semanas = []
-    primeiro_dia = datetime(ano, mes, 1)
-    ultimo_dia = datetime(ano, mes, calendar.monthrange(ano, mes)[1])
+    primeiro_dia = datetime(ano, mes_num, 1)
+    ultimo_dia = datetime(ano, mes_num, calendar.monthrange(ano, mes_num)[1])
     semana = []
     dia = primeiro_dia
     while dia <= ultimo_dia:
@@ -71,11 +71,14 @@ def gerar_semanas(mes, ano):
         dia += timedelta(days=1)
     return semanas
 
+# Alias para manter compatibilidade com templates existentes
+obter_semanas_do_mes = gerar_semanas
+
+# --- Flask-Login ---
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
-# Resto do código será completado na próxima etapa
-
+    
 @app.route('/')
 def index():
     return render_template('login.html')
@@ -113,43 +116,33 @@ def primeiro_acesso():
     email = request.form['email']
     nova_senha = request.form['nova_senha']
     usuario = Usuario.query.filter_by(email=email).first()
-    if usuario:
-        if usuario.primeiro_acesso_realizado:
-            flash('A senha já foi definida anteriormente.')
-        else:
-            usuario.senha = generate_password_hash(nova_senha)
-            usuario.primeiro_acesso_realizado = True
-            db.session.commit()
-            flash('Senha definida com sucesso. Agora você pode fazer login.')
-    else:
+    if not usuario:
         flash('Usuário não encontrado.')
-    return redirect(url_for('index'))
+    elif usuario.primeiro_acesso_realizado:
+        flash('A senha já foi definida anteriormente.')
+    else:
+        usuario.senha = generate_password_hash(nova_senha)
+        usuario.primeiro_acesso_realizado = True
+        db.session.commit()
+        flash('Senha definida com sucesso. Agora você pode fazer login.')
+    return redirect(url_for('login'))
 
 @app.route('/acompanhamento-anual')
+@login_required
 def acompanhamento_anual():
     campos = [
-        'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc',
-        'conf_ctc', 'dtc', 'conf_dtc', 'in_68', 'dpor',
-        'registro_atos', 'ag_completar', 'outros'
+        'averbacao','desaverbacao','conf_av_desav','ctc',
+        'conf_ctc','dtc','conf_dtc','in_68','dpor',
+        'registro_atos','ag_completar','outros'
     ]
-    meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-
-    # Inicializa estrutura para totais
+    meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
     totais_anuais = {mes: {campo: 0 for campo in campos} for mes in meses}
-
-    # Coleta e contabiliza dados
     producoes = LinhaProducao.query.filter(LinhaProducao.mes.in_(meses)).all()
     for producao in producoes:
         for campo in campos:
-            if getattr(producao, campo, False):
+            if getattr(producao, campo):
                 totais_anuais[producao.mes][campo] += 1
-
-    # Prepara dados agregados para gráfico
-    grafico_anos = {
-        campo: sum(totais[campo] for totais in totais_anuais.values())
-        for campo in campos
-    }
-
+    grafico_anos = {campo: sum(m[campo] for m in totais_anuais.values()) for campo in campos}
     return render_template(
         'acompanhamento_anual.html',
         totais_anuais=totais_anuais,
@@ -162,7 +155,7 @@ def acompanhamento_anual():
 @app.route('/painel-gerente', methods=['GET', 'POST'])
 @login_required
 def painel_gerente():
-    if 'usuario_id' not in session or session['usuario_tipo'] == 'analista':
+    if current_user.tipo == 'analista':
         flash('Acesso não autorizado.')
         return redirect(url_for('index'))
 
@@ -281,8 +274,9 @@ def painel_gerente():
 @app.route('/acompanhamento-pessoal')
 @login_required
 def acompanhamento_pessoal():
-    usuario = current_user
-    mes = datetime.now().strftime('%B').capitalize()
+    if current_user.tipo != 'analista':
+        flash('Acesso não autorizado.')
+        return redirect(url_for('login'))
 
     semanas = obter_semanas_do_mes(mes)
     campos = ['averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc',
@@ -334,9 +328,9 @@ def editar_producao(id):
 @app.route('/registrar-producao', methods=['GET', 'POST'])
 @login_required
 def registrar_producao():
-    if 'usuario_id' not in session or session['usuario_tipo'] != 'analista':
+    if current_user.tipo != 'analista':
         flash('Acesso não autorizado.')
-        return redirect(url_for('index'))
+        return redirect(url_for('login'))
 
     usuario = Usuario.query.get(session['usuario_id'])
     meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
@@ -433,7 +427,7 @@ def get_attr(obj, name):
 @app.route('/painel-estagiarias', methods=['GET', 'POST'])
 @login_required
 def painel_estagiarias():
-    if 'usuario_id' not in session or session['usuario_tipo'] != 'estagiaria':
+    if current_user.tipo != 'estagiaria':
         flash('Acesso não autorizado.')
         return redirect(url_for('index'))
 
