@@ -18,6 +18,11 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Meses em Português para filtro
+MESES_PT = [
+    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+
 class Usuario(db.Model, UserMixin):
     __tablename__ = 'usuario'
     id = db.Column(db.Integer, primary_key=True)
@@ -55,6 +60,7 @@ class LinhaProducao(db.Model):
 
     usuario = db.relationship('Usuario', backref='linhas')
 
+# Gera as semanas úteis de um mês e ano
 def gerar_semanas(mes_num, ano):
     semanas = []
     primeiro_dia = datetime(ano, mes_num, 1)
@@ -71,31 +77,26 @@ def gerar_semanas(mes_num, ano):
         dia += timedelta(days=1)
     return semanas
 
-# Alias para manter compatibilidade com templates existentes
+# Alias para compatibilidade
 obter_semanas_do_mes = gerar_semanas
 
-# --- Flask-Login ---
+# --- Flask-Login user loader ---
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
-    
-    MESES_PT = [
-    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
-    ]
+
+# --- Rotas de autenticação ---
 @app.route('/')
 def index():
     return render_template('login.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'GET':
         return render_template('login.html')
-
     nome = request.form['nome']
     senha = request.form['senha']
-    usuario = Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first()
-
+    usuario = Usuario.query.filter(func.lower(Usuario.nome)==nome.lower()).first()
     if usuario and check_password_hash(usuario.senha, senha):
         login_user(usuario)
         session['usuario_id'] = usuario.id
@@ -123,37 +124,33 @@ def primeiro_acesso():
     if not usuario:
         flash('Usuário não encontrado.')
     elif usuario.primeiro_acesso_realizado:
-        flash('A senha já foi definida anteriormente.')
+        flash('Senha já definida anteriormente.')
     else:
         usuario.senha = generate_password_hash(nova_senha)
         usuario.primeiro_acesso_realizado = True
         db.session.commit()
-        flash('Senha definida com sucesso. Agora você pode fazer login.')
+        flash('Senha definida com sucesso. Agora faça login.')
     return redirect(url_for('login'))
-
+    
+# --- Acompanhamento Anual (sem alterações) ---
 @app.route('/acompanhamento-anual')
 @login_required
 def acompanhamento_anual():
-    campos = [
-        'averbacao','desaverbacao','conf_av_desav','ctc',
-        'conf_ctc','dtc','conf_dtc','in_68','dpor',
-        'registro_atos','ag_completar','outros'
-    ]
+    campos = ['averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+              'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros']
     meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-    totais_anuais = {mes: {campo: 0 for campo in campos} for mes in meses}
+    totais_anuais = {m:{c:0 for c in campos} for m in meses}
     producoes = LinhaProducao.query.filter(LinhaProducao.mes.in_(meses)).all()
-    for producao in producoes:
-        for campo in campos:
-            if getattr(producao, campo):
-                totais_anuais[producao.mes][campo] += 1
-    grafico_anos = {campo: sum(m[campo] for m in totais_anuais.values()) for campo in campos}
-    return render_template(
-        'acompanhamento_anual.html',
-        totais_anuais=totais_anuais,
-        grafico_anos=grafico_anos,
-        meses=meses,
-        campos=campos
-    )
+    for p in producoes:
+        for c in campos:
+            if getattr(p,c):
+                totais_anuais[p.mes][c] += 1
+    grafico_anos = {c: sum(m[c] for m in totais_anuais.values()) for c in campos}
+    return render_template('acompanhamento_anual.html',
+                           totais_anuais=totais_anuais,
+                           grafico_anos=grafico_anos,
+                           meses=meses,
+                           campos=campos)
 
 
 @app.route('/painel-gerente', methods=['GET', 'POST'])
@@ -275,64 +272,69 @@ def painel_gerente():
         totais_anuais=totais_anuais,
         alertas=alertas
     )
+# --- Acompanhamento Pessoal com filtro de mês e semana ---
 @app.route('/acompanhamento-pessoal')
 @login_required
 def acompanhamento_pessoal():
-    # só analistas podem acessar
+    # acesso apenas para analistas
     if current_user.tipo != 'analista':
         flash('Acesso não autorizado.')
         return redirect(url_for('login'))
 
-    # data atual
-    agora = datetime.now()
-    mes_num = agora.month          # 1..12
-    ano = agora.year
-    mes_str = MESES_PT[mes_num - 1]  # e.g. 'Junho'
+    # lista de meses para filtro
+    meses = MESES_PT
 
-    # gera as semanas do mês atual
+    # parâmetros GET opcionais
+    selected_mes = request.args.get('mes') or MESES_PT[datetime.now().month - 1]
+    selected_semana = request.args.get('semana') or 'Mês inteiro'
+
+    # converte mes para número
+    mes_num = MESES_PT.index(selected_mes) + 1
+    ano = datetime.now().year
+
+    # gera semanas do mês selecionado
     semanas = gerar_semanas(mes_num, ano)
 
-    campos = [
-        'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc',
-        'conf_ctc', 'dtc', 'conf_dtc', 'in_68',
-        'dpor', 'registro_atos', 'ag_completar', 'outros'
-    ]
+    campos = ['averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+              'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros']
 
     totais = {}
+    total_mes = {c: 0 for c in campos}
     total_feito = 0
 
-    # percorre cada semana e conta nas linhas de produção
-    for semana in semanas:
-        contagem = {campo: 0 for campo in campos}
-        producoes = LinhaProducao.query.filter_by(
+    # conta por semana e total do mês
+    for s in semanas:
+        cont = {c: 0 for c in campos}
+        prods = LinhaProducao.query.filter_by(
             usuario_id=current_user.id,
-            mes=mes_str,
-            semana=semana
+            mes=selected_mes,
+            semana=s
         ).all()
-
-        for p in producoes:
-            for campo in campos:
-                if getattr(p, campo, False):
-                    contagem[campo] += 1
+        for p in prods:
+            for c in campos:
+                if getattr(p, c, False):
+                    cont[c] += 1
+                    total_mes[c] += 1
                     total_feito += 1
+        totais[s] = cont
 
-        totais[semana] = contagem
-
-    # calcula % da meta
     meta = 112 if current_user.modalidade == 'teletrabalho' else 100
     percentual_meta = round((total_feito / meta) * 100, 1) if meta else 0
 
-    return render_template(
-        'acompanhamento_pessoal.html',
+    return render_template('acompanhamento_pessoal.html',
         usuario=current_user,
+        meses=meses,
         semanas=semanas,
-        totais=totais,
+        selected_mes=selected_mes,
+        selected_semana=selected_semana,
         campos=campos,
+        totais=totais,
+        total_mes=total_mes,
         total_feito=total_feito,
         meta=meta,
-        percentual_meta=percentual_meta,
-        mes=mes_str
+        percentual_meta=percentual_meta
     )
+
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_producao(id):
