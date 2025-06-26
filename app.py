@@ -283,13 +283,13 @@ def acompanhamento_pessoal():
         flash('Acesso não autorizado.')
         return redirect(url_for('login'))
 
-    # mês e ano atuais
+    # data atual
     agora = datetime.now()
-    mes_num = agora.month                # 1–12
-    mes_str = MESES_PT[mes_num - 1]      # 'Junho', etc.
+    mes_num = agora.month          # 1..12
     ano = agora.year
+    mes_str = MESES_PT[mes_num - 1]  # e.g. 'Junho'
 
-    # gera as semanas do mês corrente
+    # gera as semanas do mês atual
     semanas = gerar_semanas(mes_num, ano)
 
     campos = [
@@ -301,7 +301,7 @@ def acompanhamento_pessoal():
     totais = {}
     total_feito = 0
 
-    # percorre cada semana e conta por campo em LinhaProducao
+    # percorre cada semana e conta nas linhas de produção
     for semana in semanas:
         contagem = {campo: 0 for campo in campos}
         producoes = LinhaProducao.query.filter_by(
@@ -318,9 +318,9 @@ def acompanhamento_pessoal():
 
         totais[semana] = contagem
 
-    # meta de processos
+    # calcula % da meta
     meta = 112 if current_user.modalidade == 'teletrabalho' else 100
-    percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
+    percentual_meta = round((total_feito / meta) * 100, 1) if meta else 0
 
     return render_template(
         'acompanhamento_pessoal.html',
