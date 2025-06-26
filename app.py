@@ -82,7 +82,7 @@ def load_user(user_id):
     MESES_PT = [
     'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
     'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
-    
+    ]
 @app.route('/')
 def index():
     return render_template('login.html')
