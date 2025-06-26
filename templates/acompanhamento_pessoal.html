@@ -1,3 +1,4 @@
+<!-- templates/acompanhamento_pessoal.html -->
 {% extends 'base.html' %}
 {% block content %}
 <div class="p-6 space-y-6">
@@ -12,7 +13,7 @@
       <label class="block font-semibold mb-1">Mês</label>
       <select name="mes" class="border rounded px-2 py-1">
         {% for m in meses %}
-          <option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>
+          <option value="{{ m }}" {% if m==selected_mes %}selected{% endif %}>{{ m }}</option>
         {% endfor %}
       </select>
     </div>
@@ -45,7 +46,7 @@
 
   <!-- contagem -->
   <div class="bg-white p-4 rounded shadow">
-    <h2 class="text-xl font-semibold mb-4">Contagem de Produção por Semana</h2>
+    <h2 class="text-xl font-semibold mb-4">Contagem de Produção</h2>
     {% if selected_semana=='Mês inteiro' %}
       <div class="overflow-x-auto">
         <table class="min-w-full border text-sm">
@@ -68,25 +69,25 @@
     {% else %}
       {% for s in semanas %}
         {% if s==selected_semana %}
-        <h3 class="font-semibold mb-2">Semana: {{ s }}</h3>
-        <div class="overflow-x-auto mb-4">
-          <table class="min-w-full border text-sm">
-            <thead class="bg-blue-600 text-white">
-              <tr>
-                {% for c in campos %}
-                  <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {% for c in campos %}
-                  <td class="border px-2 py-1 text-center">{{ totais[s][c] }}</td>
-                {% endfor %}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+          <h3 class="font-semibold mb-2">Semana: {{ s }}</h3>
+          <div class="overflow-x-auto mb-4">
+            <table class="min-w-full border text-sm">
+              <thead class="bg-blue-600 text-white">
+                <tr>
+                  {% for c in campos %}
+                    <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  {% for c in campos %}
+                    <td class="border px-2 py-1 text-center">{{ totais[s][c] }}</td>
+                  {% endfor %}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         {% endif %}
       {% endfor %}
     {% endif %}
@@ -101,26 +102,23 @@
   const campos = {{ campos|tojson }};
   const totais = {{ totais|tojson }};
   const totalMes = {{ total_mes|tojson }};
-  const semanas = {{ semanas|tojson }};
-  const sel = "{{ selected_semana }}";
+  const selectedSemana = "{{ selected_semana }}";
 
   let labels = campos;
   let datasets = [];
 
-  if (sel === 'Mês inteiro') {
-    // único dataset — total do mês
+  if (selectedSemana === 'Mês inteiro') {
     datasets.push({
-      label: 'Total de ' + sel,
+      label: 'Mês inteiro',
       data: campos.map(c => totalMes[c]),
       backgroundColor: 'rgba(54,162,235,0.6)',
       borderColor: 'rgba(54,162,235,1)',
       borderWidth: 1
     });
   } else {
-    // um dataset por semana (mas só a semana selecionada)
     datasets.push({
-      label: sel,
-      data: campos.map(c => totais[sel][c]),
+      label: selectedSemana,
+      data: campos.map(c => totais[selectedSemana][c]),
       backgroundColor: 'rgba(54,162,235,0.6)',
       borderColor: 'rgba(54,162,235,1)',
       borderWidth: 1
@@ -132,8 +130,8 @@
     data: { labels, datasets },
     options: {
       responsive: true,
-      scales: { 
-        x: { stacked: false },
+      scales: {
+        x: { beginAtZero: true },
         y: { beginAtZero: true }
       }
     }
