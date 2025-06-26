@@ -1,4 +1,4 @@
-rom flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 from flask_login import login_required
 from flask import session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
