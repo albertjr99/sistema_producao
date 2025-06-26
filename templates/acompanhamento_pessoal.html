@@ -3,9 +3,16 @@
 {% block content %}
 <div class="p-6 space-y-6">
 
-  <div class="flex justify-between items-center">
+  <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold">Acompanhamento Pessoal - {{ usuario.nome }}</h1>
+    <div class="flex space-x-2">
+      <a href="{{ url_for('registrar_producao') }}"
+         class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+        ← Voltar ao Painel
+      </a>
+    </div>
   </div>
+
 
   <!-- filtro de mês e semana -->
   <form method="get" class="flex gap-4 items-end">
