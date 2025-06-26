@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 from flask_migrate import Migrate
+from flask_login import UserMixin
 import calendar
 
 app = Flask(__name__)
@@ -18,7 +19,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # nome da função que trata o login
 
-class Usuario(db.Model):
+class Usuario(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
@@ -82,6 +83,8 @@ def load_user(user_id):
 
 from sqlalchemy import func
 
+from flask_login import login_user
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
@@ -90,12 +93,10 @@ def login():
     nome = request.form['nome']
     senha = request.form['senha']
     
-    # Busca ignorando diferenças de maiúsculas/minúsculas
     usuario = Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first()
 
     if usuario and check_password_hash(usuario.senha, senha):
-        session['usuario_id'] = usuario.id
-        session['usuario_tipo'] = usuario.tipo
+        login_user(usuario)  # <-- Aqui é a mudança principal
         if usuario.tipo == 'analista':
             return redirect(url_for('registrar_producao'))
         elif usuario.tipo == 'estagiaria':
@@ -104,7 +105,6 @@ def login():
             return redirect(url_for('painel_gerente'))
 
     return 'Login inválido'
-
 
 @app.route('/logout')
 def logout():
