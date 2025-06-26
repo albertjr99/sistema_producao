@@ -3,7 +3,7 @@ from flask_login import login_required
 from flask import session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user,  UserMixin
 from datetime import datetime, timedelta
 from flask_migrate import Migrate
 from flask_login import UserMixin
@@ -18,6 +18,10 @@ migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # nome da função que trata o login
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Usuario.query.get(int(user_id))
 
 class Usuario(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -77,10 +81,6 @@ def gerar_semanas(mes, ano):
 def index():
     return render_template('login.html')
 
-@login_manager.user_loader
-def load_user(user_id):
-    return Usuario.query.get(int(user_id))
-
 from sqlalchemy import func
 
 from flask_login import login_user
@@ -92,25 +92,26 @@ def login():
 
     nome = request.form['nome']
     senha = request.form['senha']
-    
     usuario = Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first()
 
     if usuario and check_password_hash(usuario.senha, senha):
-        login_user(usuario)  # <-- Aqui é a mudança principal
+        login_user(usuario)
+        session['usuario_id'] = usuario.id
+        session['usuario_tipo'] = usuario.tipo
         if usuario.tipo == 'analista':
             return redirect(url_for('registrar_producao'))
         elif usuario.tipo == 'estagiaria':
             return redirect(url_for('painel_estagiarias'))
         else:
             return redirect(url_for('painel_gerente'))
-
     return 'Login inválido'
 
 @app.route('/logout')
+@login_required
 def logout():
-    session.clear()  # ou session.pop('usuario', None)
+    logout_user()
+    session.clear()
     return redirect(url_for('login'))
-
 
 @app.route('/primeiro-acesso', methods=['POST'])
 def primeiro_acesso():
