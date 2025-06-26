@@ -79,6 +79,10 @@ obter_semanas_do_mes = gerar_semanas
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
     
+    MESES_PT = [
+    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+    
 @app.route('/')
 def index():
     return render_template('login.html')
