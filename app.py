@@ -12,16 +12,13 @@ import calendar
 app = Flask(__name__)
 app.secret_key = 'chave-secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///producao.db'
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # nome da função que trata o login
 
-@login_manager.user_loader
-def load_user(user_id):
-    return Usuario.query.get(int(user_id))
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class Usuario(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,7 +28,6 @@ class Usuario(db.Model, UserMixin):
     tipo = db.Column(db.String(20), nullable=False)
     modalidade = db.Column(db.String(20))
     primeiro_acesso_realizado = db.Column(db.Boolean, default=False)
-
 
 class LinhaProducao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -75,15 +71,14 @@ def gerar_semanas(mes, ano):
         dia += timedelta(days=1)
     return semanas
 
+@login_manager.user_loader
+def load_user(user_id):
+    return Usuario.query.get(int(user_id))
 # Resto do código será completado na próxima etapa
 
 @app.route('/')
 def index():
     return render_template('login.html')
-
-from sqlalchemy import func
-
-from flask_login import login_user
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -165,6 +160,7 @@ def acompanhamento_anual():
 
 
 @app.route('/painel-gerente', methods=['GET', 'POST'])
+@login_required
 def painel_gerente():
     if 'usuario_id' not in session or session['usuario_tipo'] == 'analista':
         flash('Acesso não autorizado.')
@@ -322,6 +318,7 @@ def acompanhamento_pessoal():
 
 
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
+@login_required
 def editar_producao(id):
     producao = LinhaProducao.query.get_or_404(id)
     if request.method == 'POST':
@@ -335,6 +332,7 @@ def editar_producao(id):
 # Continuação será feita na próxima etapa
 
 @app.route('/registrar-producao', methods=['GET', 'POST'])
+@login_required
 def registrar_producao():
     if 'usuario_id' not in session or session['usuario_tipo'] != 'analista':
         flash('Acesso não autorizado.')
@@ -433,6 +431,7 @@ def get_attr(obj, name):
 
 
 @app.route('/painel-estagiarias', methods=['GET', 'POST'])
+@login_required
 def painel_estagiarias():
     if 'usuario_id' not in session or session['usuario_tipo'] != 'estagiaria':
         flash('Acesso não autorizado.')
@@ -506,6 +505,7 @@ def painel_estagiarias():
     )
 
 @app.route('/relatorio-geral')
+@login_required
 def relatorio_geral():
     if 'usuario_id' not in session or session['usuario_tipo'] == 'analista':
         flash('Acesso não autorizado.')
@@ -537,6 +537,7 @@ def relatorio_geral():
 
 
 @app.route('/editar-producao-lote/<int:analista_id>', methods=['POST'])
+@login_required
 def editar_producao_lote(analista_id):
     if 'usuario_id' not in session or session['usuario_tipo'] != 'estagiaria':
         flash('Acesso não autorizado.')
