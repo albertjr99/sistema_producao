@@ -9,13 +9,14 @@ from flask_migrate import Migrate
 import calendar
 
 app = Flask(__name__)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'  # nome da função que trata o login
 app.secret_key = 'chave-secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///producao.db'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # nome da função que trata o login
 
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -74,6 +75,10 @@ def gerar_semanas(mes, ano):
 @app.route('/')
 def index():
     return render_template('login.html')
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Usuario.query.get(int(user_id))
 
 from sqlalchemy import func
 
