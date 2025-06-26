@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+rom flask import Flask, render_template, request, redirect, session, url_for, flash
 from flask_login import login_required
 from flask import session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
@@ -6,20 +6,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 from flask_migrate import Migrate
-from flask_login import UserMixin
 import calendar
 
 app = Flask(__name__)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # nome da função que trata o login
 app.secret_key = 'chave-secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///producao.db'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'  # nome da função que trata o login
-
-class Usuario(db.Model, UserMixin):
+class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
@@ -77,13 +75,7 @@ def gerar_semanas(mes, ano):
 def index():
     return render_template('login.html')
 
-@login_manager.user_loader
-def load_user(user_id):
-    return Usuario.query.get(int(user_id))
-
 from sqlalchemy import func
-
-from flask_login import login_user
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -93,10 +85,12 @@ def login():
     nome = request.form['nome']
     senha = request.form['senha']
     
+    # Busca ignorando diferenças de maiúsculas/minúsculas
     usuario = Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first()
 
     if usuario and check_password_hash(usuario.senha, senha):
-        login_user(usuario)  # <-- Aqui é a mudança principal
+        session['usuario_id'] = usuario.id
+        session['usuario_tipo'] = usuario.tipo
         if usuario.tipo == 'analista':
             return redirect(url_for('registrar_producao'))
         elif usuario.tipo == 'estagiaria':
@@ -105,6 +99,7 @@ def login():
             return redirect(url_for('painel_gerente'))
 
     return 'Login inválido'
+
 
 @app.route('/logout')
 def logout():
@@ -569,30 +564,4 @@ def editar_producao_lote(analista_id):
             processo.fase = request.form.get(f'{semana}_{i}_fase') or ""
 
     db.session.commit()
-    flash('Edições salvas com sucesso.')
-    return redirect(url_for('painel_estagiarias', analista_id=analista_id, mes=mes))
-
-if __name__ == '__main__':
-    app.run(debug=True)
-    
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
+    flash('Edições salvas com sucesso')
