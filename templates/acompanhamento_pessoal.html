@@ -1,90 +1,140 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-6">
-  <div class="flex justify-between items-center mb-6">
+<div class="p-6 space-y-6">
+
+  <div class="flex justify-between items-center">
     <h1 class="text-2xl font-bold">Acompanhamento Pessoal - {{ usuario.nome }}</h1>
   </div>
 
-  <div class="mb-6">
-    <a href="{{ url_for('registrar_producao') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">← Voltar</a>
-  </div>
+  <!-- filtro de mês e semana -->
+  <form method="get" class="flex gap-4 items-end">
+    <div>
+      <label class="block font-semibold mb-1">Mês</label>
+      <select name="mes" class="border rounded px-2 py-1">
+        {% for m in meses %}
+          <option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block font-semibold mb-1">Semana</label>
+      <select name="semana" class="border rounded px-2 py-1">
+        <option value="Mês inteiro" {% if selected_semana=='Mês inteiro' %}selected{% endif %}>Mês inteiro</option>
+        {% for s in semanas %}
+          <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filtrar</button>
+  </form>
 
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h2 class="text-xl font-semibold mb-4">Progresso Mensal</h2>
-    <div class="w-full h-4 bg-gray-200 rounded">
+  <!-- progresso mensal -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-2">Progresso Mensal</h2>
+    <div class="w-full h-4 bg-gray-200 rounded mb-2">
       <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
     </div>
-    <p class="text-sm mt-2">{{ total_feito }} de {{ meta }} processos</p>
+    <p class="text-sm">{{ total_feito }} de {{ meta }} processos</p>
   </div>
 
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h2 class="text-xl font-semibold mb-4">Gráfico Semanal</h2>
+  <!-- gráfico -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">Gráfico de Produção</h2>
     <canvas id="graficoProducao"></canvas>
   </div>
 
+  <!-- contagem -->
   <div class="bg-white p-4 rounded shadow">
     <h2 class="text-xl font-semibold mb-4">Contagem de Produção por Semana</h2>
-    {% for semana, contagem in totais.items() %}
-    <div class="mb-4">
-      <h3 class="font-semibold mb-2">Semana: {{ semana }}</h3>
-      <table class="min-w-full border text-sm">
-        <thead class="bg-blue-600 text-white">
-          <tr>
-            {% for campo in campos %}
-            <th class="border px-2 py-1">{{ campo.replace('_', ' ') | title }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {% for campo in campos %}
-            <td class="border px-2 py-1 text-center">{{ contagem[campo] }}</td>
-            {% endfor %}
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    {% endfor %}
+    {% if selected_semana=='Mês inteiro' %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full border text-sm">
+          <thead class="bg-blue-600 text-white">
+            <tr>
+              {% for c in campos %}
+                <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {% for c in campos %}
+                <td class="border px-2 py-1 text-center">{{ total_mes[c] }}</td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      {% for s in semanas %}
+        {% if s==selected_semana %}
+        <h3 class="font-semibold mb-2">Semana: {{ s }}</h3>
+        <div class="overflow-x-auto mb-4">
+          <table class="min-w-full border text-sm">
+            <thead class="bg-blue-600 text-white">
+              <tr>
+                {% for c in campos %}
+                  <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {% for c in campos %}
+                  <td class="border px-2 py-1 text-center">{{ totais[s][c] }}</td>
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
   </div>
 
-  <div class="mt-6">
-    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
-      Imprimir Página
-    </button>
-  </div>
 </div>
 
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   const ctx = document.getElementById('graficoProducao').getContext('2d');
-  const semanas = {{ semanas|tojson }};
   const campos = {{ campos|tojson }};
   const totais = {{ totais|tojson }};
+  const totalMes = {{ total_mes|tojson }};
+  const semanas = {{ semanas|tojson }};
+  const sel = "{{ selected_semana }}";
 
-  const dadosPorCampo = campos.map(campo => ({
-    label: campo.replace(/_/g, ' ').toUpperCase(),
-    data: semanas.map(semana => totais[semana][campo]),
-    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-    borderColor: 'rgba(54, 162, 235, 1)',
-    borderWidth: 1
-  }));
+  let labels = campos;
+  let datasets = [];
+
+  if (sel === 'Mês inteiro') {
+    // único dataset — total do mês
+    datasets.push({
+      label: 'Total de ' + sel,
+      data: campos.map(c => totalMes[c]),
+      backgroundColor: 'rgba(54,162,235,0.6)',
+      borderColor: 'rgba(54,162,235,1)',
+      borderWidth: 1
+    });
+  } else {
+    // um dataset por semana (mas só a semana selecionada)
+    datasets.push({
+      label: sel,
+      data: campos.map(c => totais[sel][c]),
+      backgroundColor: 'rgba(54,162,235,0.6)',
+      borderColor: 'rgba(54,162,235,1)',
+      borderWidth: 1
+    });
+  }
 
   new Chart(ctx, {
     type: 'bar',
-    data: {
-      labels: semanas,
-      datasets: dadosPorCampo
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
-      scales: {
-        x: {
-          stacked: true
-        },
-        y: {
-          beginAtZero: true,
-          stacked: true
-        }
+      scales: { 
+        x: { stacked: false },
+        y: { beginAtZero: true }
       }
     }
   });
