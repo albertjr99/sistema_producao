@@ -136,12 +136,12 @@ def acompanhamento_anual():
         return redirect(url_for('login'))
     campos = ['averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc','dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros']
     meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-    totais_anuais = {m:{c:0 for c incampos} for m in meses}
+    totais_anuais = {m:{c:0 for c in campos} for m in meses}
     producoes = LinhaProducao.query.filter(LinhaProducao.mes.in_(meses)).all()
     for p in producoes:
         for c in campos:
             if getattr(p,c): totais_anuais[p.mes][c]+=1
-    grafico_anos = {c: sum(t[c] for t in totais_anuais.values()) for c incampos}
+    grafico_anos = {c: sum(t[c] for t in totais_anuais.values()) for c in campos}
     return render_template('acompanhamento_anual.html', totais_anuais=totais_anuais, grafico_anos=grafico_anos, meses=meses, campos=campos)
 
 # --- Painel Gerente ---
@@ -189,7 +189,7 @@ def painel_gerente():
             s: [LinhaProducao.query.filter_by(usuario_id=user_sel.id, mes=mes, semana=s).offset(i).first() for i in range(linhas)]
             for s in semanas
         }
-        totais = {s:{c:0 for c incampos_chk} for s in semanas}
+        totais = {s:{c:0 for c in campos_chk} for s in semanas}
         for s in semanas:
             prods = LinhaProducao.query.filter_by(usuario_id=user_sel.id, mes=mes, semana=s).all()
             for p in prods:
@@ -203,10 +203,10 @@ def painel_gerente():
             if faltam>0: alertas[s]=f"Faltam {faltam} tarefas"
 
     # Totais anuais
-    totais_anuais = {m:{c:0 for c incampos_chk} for m in meses}
+    totais_anuais = {m:{c:0 for c in campos_chk} for m in meses}
     for m in meses:
         for p in LinhaProducao.query.filter_by(mes=m).all():
-            for c incampos_chk:
+            for c in campos_chk:
                 if getattr(p,c): totais_anuais[m][c]+=1
 
     return render_template('painel_gerente.html',
@@ -264,10 +264,10 @@ def registrar_producao():
         s: [LinhaProducao.query.filter_by(usuario_id=usuario.id, mes=mes_atual, semana=s, indice_linha=i+1).first() for i in range(linhas)]
         for s in semanas
     }
-    totais = {s:{c:0 for c incampos} for s in semanas}
+    totais = {s:{c:0 for c in campos} for s in semanas}
     for s in semanas:
         for p in LinhaProducao.query.filter_by(usuario_id=usuario.id, mes=mes_atual, semana=s).all():
-            for c incampos:
+            for c in campos:
                 if getattr(p,c): totais[s][c]+=1
     total_feito = sum(sum(v.values()) for v in totais.values())
     meta = 112 if usuario.modalidade=='teletrabalho' else 100
@@ -303,9 +303,9 @@ def acompanhamento_pessoal():
     totais = {}
     total_feito = 0
     for s in semanas:
-        cont = {c:0 for c incampos}
+        cont = {c:0 for c in campos}
         for p in LinhaProducao.query.filter_by(usuario_id=usuario.id, semana=s, mes=mes).all():
-            for c incampos:
+            for c in campos:
                 if getattr(p,c):
                     cont[c]+=1
                     total_feito+=1
@@ -390,10 +390,10 @@ def relatorio_geral():
     ano=2025
     meses=['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
     campos=['averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc','dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros']
-    totais_gerais={m:{c:0 for c incampos} for m in meses}
+    totais_gerais={m:{c:0 for c in campos} for m in meses}
     for m in meses:
         for p in LinhaProducao.query.filter_by(mes=m).all():
-            for c incampos:
+            for c in campos:
                 if getattr(p,c): totais_gerais[m][c]+=1
 
     return render_template('relatorio_geral.html', totais_gerais=totais_gerais, campos=campos, meses=meses)
