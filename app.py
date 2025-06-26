@@ -274,28 +274,47 @@ def painel_gerente():
 @app.route('/acompanhamento-pessoal')
 @login_required
 def acompanhamento_pessoal():
+    # 1) só analistas podem acessar
     if current_user.tipo != 'analista':
         flash('Acesso não autorizado.')
         return redirect(url_for('login'))
 
-    semanas = obter_semanas_do_mes(mes)
-    campos = ['averbacao', 'desaverbacao', 'conf_av_desav', 'ctc', 'conf_ctc', 'dtc',
-              'conf_dtc', 'in_68', 'dpor', 'registro_atos', 'ag_completar', 'outros']
+    # 2) Definindo usuário e mês atual
+    usuario = current_user
+    mes = datetime.now().strftime('%B')  # Ex: 'Junho'
+    ano = datetime.now().year           # Ex: 2025
+
+    # 3) Gerar as semanas com a função que você já tem
+    #    Aqui estou assumindo que 'gerar_semanas' recebe mês (numérico) e ano
+    mes_num = datetime.now().month
+    semanas = gerar_semanas(mes_num, ano)
+
+    campos = [
+        'averbacao', 'desaverbacao', 'conf_av_desav', 'ctc',
+        'conf_ctc', 'dtc', 'conf_dtc', 'in_68', 'dpor',
+        'registro_atos', 'ag_completar', 'outros'
+    ]
 
     totais = {}
     total_feito = 0
     for semana in semanas:
         contagem = {campo: 0 for campo in campos}
-        processos = Processo.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes).all()
-        for processo in processos:
+        # 4) Consulta ao modelo correto
+        producoes = LinhaProducao.query.filter_by(
+            usuario_id=usuario.id,
+            semana=semana,
+            mes=mes
+        ).all()
+        for producao in producoes:
             for campo in campos:
-                if getattr(processo, campo):
+                if getattr(producao, campo, False):
                     contagem[campo] += 1
                     total_feito += 1
         totais[semana] = contagem
 
-    meta = 100  # Adapte conforme necessário
-    percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
+    # 5) Cálculo de meta e percentual (ajuste a meta como preferir)
+    meta = 112 if usuario.modalidade == 'teletrabalho' else 100
+    percentual_meta = round((total_feito / meta) * 100, 1) if meta else 0
 
     return render_template(
         'acompanhamento_pessoal.html',
@@ -308,8 +327,6 @@ def acompanhamento_pessoal():
         percentual_meta=percentual_meta,
         mes=mes
     )
-
-
 
 @app.route('/editar-producao/<int:id>', methods=['GET', 'POST'])
 @login_required
