@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="p-6">
-  <!-- header with maximize and print -->
+  <!-- Header -->
   <div class="flex justify-between items-center mb-4">
     <h1 class="text-2xl font-bold">Acompanhamento Anual</h1>
     <div class="flex space-x-2">
@@ -20,6 +20,7 @@
     </a>
   </div>
 
+  <!-- Tabela Anual -->
   <table class="w-full table-auto border text-sm bg-white shadow rounded mb-4">
     <thead class="bg-gray-200">
       <tr>
@@ -41,12 +42,14 @@
     </tbody>
   </table>
 
+  <!-- Botão de exibir gráfico -->
   <div class="flex gap-4 mb-4">
     <button id="btnGrafico" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
       Exibir Gráfico
     </button>
   </div>
 
+  <!-- Gráfico Anual -->
   <canvas id="graficoAtividades" class="hidden w-full max-w-5xl mx-auto"></canvas>
 </div>
 
@@ -55,7 +58,7 @@
   function toggleFullScreen() {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
-    } else if (document.exitFullscreen) {
+    } else {
       document.exitFullscreen();
     }
   }
