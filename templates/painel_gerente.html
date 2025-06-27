@@ -1,16 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-6">
   <h1 class="text-2xl font-bold mb-4">Painel dos Gestores</h1>
 
   <div class="mb-6">
-    <a href="{{ url_for('acompanhamento_anual') }}" class="bg-purple-600 text-white px-4 py-2 rounded">
+    <a href="{{ url_for('acompanhamento_anual') }}"
+       class="bg-purple-600 text-white px-4 py-2 rounded">
       Acompanhamento Anual do Setor
     </a>
   </div>
 
-  <!-- Filtro de analista -->
-  <form method="get" class="mb-6">
+  <form method="get" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
     <label class="block font-semibold">Selecione um Analista:</label>
     <select name="analista_id" class="border rounded p-2 w-full mb-4">
       <optgroup label="Presencial">
