@@ -28,18 +28,18 @@
       <label class="block font-semibold mb-1">Mês</label>
       <select name="mes" class="border rounded px-2 py-1">
         {% for m in meses %}
-          <option value="{{ m }}" {% if m==selected_mes %}selected{% endif %}>{{ m }}</option>
+          <option value="{{ m }}" {% if m == selected_mes %}selected{% endif %}>{{ m }}</option>
         {% endfor %}
       </select>
     </div>
     <div>
       <label class="block font-semibold mb-1">Semana</label>
       <select name="semana" class="border rounded px-2 py-1">
-        <option value="Mês inteiro" {% if selected_semana=='Mês inteiro' %}selected{% endif %}>
+        <option value="Mês inteiro" {% if selected_semana == 'Mês inteiro' %}selected{% endif %}>
           Mês inteiro
         </option>
         {% for s in semanas %}
-          <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
+          <option value="{{ s }}" {% if s == selected_semana %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
       </select>
     </div>
@@ -66,7 +66,7 @@
   <!-- Contagem de Produção -->
   <div class="bg-white p-4 rounded shadow">
     <h2 class="text-xl font-semibold mb-4">Contagem de Produção</h2>
-    {% if selected_semana=='Mês inteiro' %}
+    {% if selected_semana == 'Mês inteiro' %}
       <div class="overflow-x-auto">
         <table class="min-w-full border text-sm">
           <thead class="bg-blue-600 text-white">
@@ -109,7 +109,7 @@
 
 </div>
 
-<!-- JS: Fullscreen + Chart -->
+<!-- JS: Fullscreen + Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   function toggleFullScreen() {
@@ -120,22 +120,30 @@
     }
   }
 
-  const ctx = document.getElementById('graficoProducao').getContext('2d');
+  // prepara dados via Jinja (sem ?: dentro de {{ }})
   const labels = {{ campos|tojson }};
-  const data  = {{ selected_semana=='Mês inteiro' ? total_mes.values()|list : totais[selected_semana].values()|list }};
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: {{ campos|tojson }},
-      datasets: [{
-        label: selected_semana==='Mês inteiro' ? 'Total Mês' : selected_semana,
-        data: data,
-        backgroundColor: 'rgba(54,162,235,0.6)',
-        borderColor: 'rgba(54,162,235,1)',
-        borderWidth: 1
-      }]
-    },
-    options: { responsive:true, scales: { y:{ beginAtZero:true } } }
-  });
+  const data   = {{ (selected_semana=='Mês inteiro'
+                      and total_mes.values() or totais[selected_semana].values())|list|tojson }};
+
+  new Chart(
+    document.getElementById('graficoProducao').getContext('2d'),
+    {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: {{ ("Total Mês" if selected_semana=="Mês inteiro" else selected_semana)|tojson }},
+          data: data,
+          backgroundColor: 'rgba(54,162,235,0.6)',
+          borderColor: 'rgba(54,162,235,1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } }
+      }
+    }
+  );
 </script>
 {% endblock %}
