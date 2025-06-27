@@ -121,7 +121,7 @@
   }
 
   const ctx = document.getElementById('graficoProducao').getContext('2d');
-  const labels = {{ selected_semana=='Mês inteiro' ? campos : campos }};
+  const labels = {{ campos|tojson }};
   const data  = {{ selected_semana=='Mês inteiro' ? total_mes.values()|list : totais[selected_semana].values()|list }};
   new Chart(ctx, {
     type: 'bar',
