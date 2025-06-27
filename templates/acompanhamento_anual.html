@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-6">
-  <!-- Header -->
-  <div class="flex justify-between items-center mb-4">
+<div class="p-6 space-y-6">
+
+  <!-- Header + maximize/print -->
+  <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold">Acompanhamento Anual</h1>
     <div class="flex space-x-2">
       <button onclick="toggleFullScreen()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
@@ -14,45 +15,101 @@
     </div>
   </div>
 
+  <!-- Voltar ao gestor -->
   <div class="mb-6">
     <a href="{{ url_for('painel_gerente') }}" class="bg-gray-600 text-white px-4 py-2 rounded">
       ← Voltar ao Painel dos Gestores
     </a>
   </div>
 
-  <!-- Tabela Anual -->
-  <table class="w-full table-auto border text-sm bg-white shadow rounded mb-4">
-    <thead class="bg-gray-200">
-      <tr>
-        <th class="border px-2 py-1">Mês</th>
-        {% for campo in totais_anuais['Junho'].keys() %}
-          <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
+  <!-- Filtro Mês / Semana -->
+  <form method="get" class="flex gap-4 items-end mb-6">
+    <div>
+      <label class="block font-semibold mb-1">Mês</label>
+      <select name="mes" class="border rounded px-2 py-1">
+        {% for m in meses %}
+          <option value="{{ m }}" {% if m==selected_mes %}selected{% endif %}>{{ m }}</option>
         {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for mes_nome, dados in totais_anuais.items() %}
-      <tr>
-        <td class="border px-2 py-1 font-semibold">{{ mes_nome }}</td>
-        {% for valor in dados.values() %}
-          <td class="border px-2 py-1 text-center">{{ valor }}</td>
+      </select>
+    </div>
+    <div>
+      <label class="block font-semibold mb-1">Semana</label>
+      <select name="semana" class="border rounded px-2 py-1">
+        <option value="Mês inteiro" {% if selected_semana=='Mês inteiro' %}selected{% endif %}>
+          Mês inteiro
+        </option>
+        {% for s in semanas %}
+          <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <!-- Botão de exibir gráfico -->
-  <div class="flex gap-4 mb-4">
-    <button id="btnGrafico" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-      Exibir Gráfico
+      </select>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+      Filtrar
     </button>
+  </form>
+
+  <!-- Progresso Mensal -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-2">Progresso Mensal</h2>
+    <div class="w-full h-4 bg-gray-200 rounded mb-2">
+      <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
+    </div>
+    <p class="text-sm">{{ total_feito }} de {{ meta }} processos</p>
   </div>
 
-  <!-- Gráfico Anual -->
-  <canvas id="graficoAtividades" class="hidden w-full max-w-5xl mx-auto"></canvas>
+  <!-- Gráfico -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">Gráfico de Produção</h2>
+    <canvas id="graficoProducao"></canvas>
+  </div>
+
+  <!-- Contagem de Produção -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">Contagem de Produção</h2>
+    {% if selected_semana=='Mês inteiro' %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full border text-sm">
+          <thead class="bg-blue-600 text-white">
+            <tr>
+              {% for c in campos %}
+                <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {% for c in campos %}
+                <td class="border px-2 py-1 text-center">{{ total_mes[c] }}</td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full border text-sm">
+          <thead class="bg-blue-600 text-white">
+            <tr>
+              {% for c in campos %}
+                <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {% for c in campos %}
+                <td class="border px-2 py-1 text-center">{{ totais[selected_semana][c] }}</td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+
 </div>
 
+<!-- JS: Fullscreen + Chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   function toggleFullScreen() {
@@ -63,27 +120,22 @@
     }
   }
 
-  document.getElementById('btnGrafico').addEventListener('click', () => {
-    const canvas = document.getElementById('graficoAtividades');
-    canvas.classList.toggle('hidden');
-    if (!canvas.dataset.rendered) {
-      const labels = {{ totais_anuais['Junho'].keys()|list|tojson }};
-      const dados  = {{ grafico_anos|tojson }};
-      const ctx    = canvas.getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Total Anual por Tipo de Peça',
-            data: dados,
-            backgroundColor: 'rgba(54,162,235,0.7)'
-          }]
-        },
-        options: { responsive:true, plugins:{ legend:{ display:false } } }
-      });
-      canvas.dataset.rendered = true;
-    }
+  const ctx = document.getElementById('graficoProducao').getContext('2d');
+  const labels = {{ selected_semana=='Mês inteiro' ? campos : campos }};
+  const data  = {{ selected_semana=='Mês inteiro' ? total_mes.values()|list : totais[selected_semana].values()|list }};
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ campos|tojson }},
+      datasets: [{
+        label: selected_semana==='Mês inteiro' ? 'Total Mês' : selected_semana,
+        data: data,
+        backgroundColor: 'rgba(54,162,235,0.6)',
+        borderColor: 'rgba(54,162,235,1)',
+        borderWidth: 1
+      }]
+    },
+    options: { responsive:true, scales: { y:{ beginAtZero:true } } }
   });
 </script>
 {% endblock %}
