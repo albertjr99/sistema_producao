@@ -46,7 +46,7 @@
 
   <script>
     function limitarCheckboxesPorLinha(prefixo, linha) {
-      const checkboxes = document.querySelectorAll(`[name^="${prefixo}_${linha}_"]`);
+      const checkboxes = document.querySelectorAll(`[name^=\"${prefixo}_${linha}_\"]`);
       checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
           const marcados = Array.from(checkboxes).filter(c => c.checked);
@@ -91,7 +91,7 @@
 
 <body class="{{ 'bg-pink-100' if usuario.nome.upper() in ['SHIRLENE','ALINE','MARIANA','ANA LUCIA','CAROLINE','FLÁVIA','CRISTINA','SILVANA','SORAYA'] else 'bg-blue-100' }} p-6">
   <div class="container mx-auto px-4">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-4 nao-imprimir">
       <div>
         <h1 class="text-2xl font-bold">Registrar Produção - {{ usuario.nome }}</h1>
         <div class="flex items-center mt-2 space-x-2">
@@ -101,6 +101,9 @@
         </div>
       </div>
       <div class="flex space-x-2">
+        <button id="btnFullscreen" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          ⛶ Maximizar Tela
+        </button>
         <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
         <a href="{{ url_for('acompanhamento_pessoal') }}" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Acompanhar Produção Pessoal</a>
       </div>
@@ -180,6 +183,19 @@
         {% endfor %}
       </div>
     </form>
+
   </div>
+
+  <script>
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+    document.getElementById('btnFullscreen').addEventListener('click', toggleFullScreen);
+  </script>
+
 </body>
 </html>
