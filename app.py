@@ -137,19 +137,21 @@ def primeiro_acesso():
 @app.route('/acompanhamento-anual')
 @login_required
 def acompanhamento_anual():
-    campos = ['averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
-              'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros']
+    campos = [
+        'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+        'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros'
+    ]
     meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
-    # totais anuais por tipo de peça
-    totais_anuais = {m:{c:0 for c in campos} for m in meses}
+    # Totais anuais por tipo de peça
+    totais_anuais = {m: {c:0 for c in campos} for m in meses}
     producoes = LinhaProducao.query.filter(LinhaProducao.mes.in_(meses)).all()
     for p in producoes:
         for c in campos:
             if getattr(p, c, False):
                 totais_anuais[p.mes][c] += 1
 
-    # dados para o gráfico anual
+    # Dados para o gráfico anual
     grafico_anos = {c: sum(m[c] for m in totais_anuais.values()) for c in campos}
 
     return render_template(
@@ -161,19 +163,20 @@ def acompanhamento_anual():
     )
 
 
+
 @app.route('/painel-gerente', methods=['GET', 'POST'])
 @login_required
 def painel_gerente():
-    # só gestores acessam
+    # 1) só gestores acessam
     if current_user.tipo == 'analista':
         flash('Acesso não autorizado.')
         return redirect(url_for('index'))
 
-    # listas de analistas
+    # 2) listas de analistas
     analistas_presencial   = Usuario.query.filter_by(tipo='analista', modalidade='presencial').all()
     analistas_teletrabalho = Usuario.query.filter_by(tipo='analista', modalidade='teletrabalho').all()
 
-    # leitura dos filtros
+    # 3) leitura dos filtros
     analista_id     = request.values.get('analista_id', type=int)
     mes             = request.values.get('mes', default='Junho')
     selected_semana = request.values.get('semana', default='Mês inteiro')
@@ -189,28 +192,30 @@ def painel_gerente():
     semanas = gerar_semanas(idx + 6, ano)
     linhas  = 33 if usuario_sel and usuario_sel.modalidade=='teletrabalho' else 28
 
-    campos = ['averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
-              'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros']
+    campos = [
+        'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+        'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros'
+    ]
 
-    # inicializa estruturas
-    processos_info   = {}
-    totais_semanais  = {s:{c:0 for c in campos} for s in semanas}
-    total_feito      = 0
-    meta             = 100
-    percentual_meta  = 0
+    # inicialização
+    processos_info  = {}
+    totais_semanais = {s: {c:0 for c in campos} for s in semanas}
+    total_feito     = 0
+    meta            = 100
+    percentual_meta = 0
     alertas         = {}
 
     if usuario_sel:
         # meta variável
         meta = 112 if usuario_sel.modalidade=='teletrabalho' else 100
 
-        # salvar edições
-        if request.method=='POST':
+        # se veio POST, salva as edições
+        if request.method == 'POST':
             for s in semanas:
                 for i in range(linhas):
                     p = (LinhaProducao.query
-                              .filter_by(usuario_id=usuario_sel.id, mes=mes, semana=s)
-                              .offset(i).first())
+                            .filter_by(usuario_id=usuario_sel.id, mes=mes, semana=s)
+                            .offset(i).first())
                     if not p:
                         p = LinhaProducao(
                             usuario_id=usuario_sel.id,
@@ -220,22 +225,21 @@ def painel_gerente():
                             data_registro=datetime.utcnow()
                         )
                         db.session.add(p)
-                    # campos de texto
                     p.numero_processo = request.form.get(f'{s}_{i}_numero_processo','')
                     p.requerente      = request.form.get(f'{s}_{i}_requerente','')
                     p.fase            = request.form.get(f'{s}_{i}_fase','')
                     p.observacao      = request.form.get(f'{s}_{i}_obs','')
-                    # checkboxes
                     for c in campos:
                         setattr(p, c, bool(request.form.get(f'{s}_{i}_{c}')))
             db.session.commit()
             flash('Produção atualizada com sucesso.')
+            # mantém filtros após salvar
             return redirect(url_for('painel_gerente',
                                     analista_id=usuario_sel.id,
                                     mes=mes,
                                     semana=selected_semana))
 
-        # construir dicionários para template
+        # monta informações e totais semanais
         processos_info = {
             s: [
                 (LinhaProducao.query
@@ -251,26 +255,26 @@ def painel_gerente():
                     if getattr(p, c):
                         totais_semanais[s][c] += 1
 
-        # totais do mês e progresso
+        # total do mês e progresso
         total_feito     = sum(sum(vals.values()) for vals in totais_semanais.values())
         percentual_meta = min(int((total_feito / meta) * 100), 100)
 
         # alertas semanais
         for s in semanas:
-            feito   = sum(totais_semanais[s].values())
-            esperado= 25 if usuario_sel.modalidade=='presencial' else 28
+            feito    = sum(totais_semanais[s].values())
+            esperado = 25 if usuario_sel.modalidade=='presencial' else 28
             if feito < esperado:
                 alertas[s] = f"Faltam {esperado - feito} tarefas"
 
-    # totais anuais (comparativo)
-    totais_anuais = {m:{c:0 for c in campos} for m in meses}
+    # totais anuais p/ comparativo
+    totais_anuais = {m: {c:0 for c in campos} for m in meses}
     for m in meses:
         for p in LinhaProducao.query.filter_by(mes=m):
             for c in campos:
                 if getattr(p, c):
                     totais_anuais[m][c] += 1
 
-    # total do mês por tipo de peça (mini-relatório)
+    # total do mês p/ mini‐relatório
     total_mes = {c: sum(totaiss[c] for totaiss in totais_semanais.values())
                  for c in campos}
 
@@ -294,6 +298,7 @@ def painel_gerente():
         alertas                = alertas,
         totais_anuais          = totais_anuais
     )
+
 # --- Acompanhamento Pessoal com filtro de mês e semana ---
 @app.route('/acompanhamento-pessoal')
 @login_required
