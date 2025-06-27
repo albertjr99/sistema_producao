@@ -143,23 +143,53 @@ def acompanhamento_anual():
     ]
     meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
-    # Totais anuais por tipo de peça
-    totais_anuais = {m: {c:0 for c in campos} for m in meses}
-    producoes = LinhaProducao.query.filter(LinhaProducao.mes.in_(meses)).all()
-    for p in producoes:
-        for c in campos:
-            if getattr(p, c, False):
-                totais_anuais[p.mes][c] += 1
+    # Parâmetros de filtro
+    selected_mes    = request.args.get('mes', default=meses[0])
+    if selected_mes not in meses:
+        selected_mes = meses[0]
+    selected_semana = request.args.get('semana', default='Mês inteiro')
 
-    # Dados para o gráfico anual
-    grafico_anos = {c: sum(m[c] for m in totais_anuais.values()) for c in campos}
+    # Gera as semanas do mês selecionado
+    ano     = datetime.now().year
+    mes_idx = meses.index(selected_mes)
+    semanas = gerar_semanas(mes_idx + 6, ano)
+
+    # Totais por semana e total do mês
+    totais     = {}
+    total_mes  = {c: 0 for c in campos}
+    total_feito = 0
+
+    for s in semanas:
+        cont = {c: 0 for c in campos}
+        procs = LinhaProducao.query.filter_by(
+            usuario_id=current_user.id,
+            mes=selected_mes,
+            semana=s
+        ).all()
+        for p in procs:
+            for c in campos:
+                if getattr(p, c):
+                    cont[c] += 1
+                    total_mes[c] += 1
+                    total_feito += 1
+        totais[s] = cont
+
+    # Meta mensal e porcentagem
+    meta = 112 if current_user.modalidade == 'teletrabalho' else 100
+    percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
 
     return render_template(
         'acompanhamento_anual.html',
-        totais_anuais=totais_anuais,
-        grafico_anos=grafico_anos,
         meses=meses,
-        campos=campos
+        semanas=semanas,
+        campos=campos,
+        selected_mes=selected_mes,
+        selected_semana=selected_semana,
+        totais=totais,
+        total_mes=total_mes,
+        total_feito=total_feito,
+        meta=meta,
+        percentual_meta=percentual_meta
     )
 
 
