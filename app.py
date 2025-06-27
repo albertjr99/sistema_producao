@@ -173,46 +173,44 @@ def painel_gerente():
     analistas_presencial   = Usuario.query.filter_by(tipo='analista', modalidade='presencial').all()
     analistas_teletrabalho = Usuario.query.filter_by(tipo='analista', modalidade='teletrabalho').all()
 
-    # seleção de analista e mês
-    analista_id = request.values.get('analista_id', type=int)
-    mes         = request.values.get('mes',      default='Junho')
-    meses       = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+    # leitura dos filtros
+    analista_id     = request.values.get('analista_id', type=int)
+    mes             = request.values.get('mes', default='Junho')
+    selected_semana = request.values.get('semana', default='Mês inteiro')
+
+    meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
     if mes not in meses:
         mes = 'Junho'
 
     usuario_sel = Usuario.query.get(analista_id) if analista_id else None
 
-    ano       = datetime.now().year
-    mes_idx   = meses.index(mes)
-    semanas   = gerar_semanas(mes_idx+6, ano)
-    linhas    = 33 if usuario_sel and usuario_sel.modalidade=='teletrabalho' else 28
+    ano     = datetime.now().year
+    idx     = meses.index(mes)
+    semanas = gerar_semanas(idx + 6, ano)
+    linhas  = 33 if usuario_sel and usuario_sel.modalidade=='teletrabalho' else 28
 
-    campos = [
-        'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
-        'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros'
-    ]
+    campos = ['averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+              'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros']
 
-    # inicializa
-    processos_info = {}
-    totais         = {s:{c:0 for c in campos} for s in semanas}
-    total_feito    = 0
-    meta           = 100
-    percentual_meta= 0
-    alertas        = {}
+    # inicializa estruturas
+    processos_info   = {}
+    totais_semanais  = {s:{c:0 for c in campos} for s in semanas}
+    total_feito      = 0
+    meta             = 100
+    percentual_meta  = 0
+    alertas         = {}
 
     if usuario_sel:
         # meta variável
         meta = 112 if usuario_sel.modalidade=='teletrabalho' else 100
 
-        # salvar edits
+        # salvar edições
         if request.method=='POST':
             for s in semanas:
                 for i in range(linhas):
-                    p = LinhaProducao.query.filter_by(
-                        usuario_id=usuario_sel.id,
-                        mes=mes,
-                        semana=s
-                    ).offset(i).first()
+                    p = (LinhaProducao.query
+                              .filter_by(usuario_id=usuario_sel.id, mes=mes, semana=s)
+                              .offset(i).first())
                     if not p:
                         p = LinhaProducao(
                             usuario_id=usuario_sel.id,
@@ -232,64 +230,70 @@ def painel_gerente():
                         setattr(p, c, bool(request.form.get(f'{s}_{i}_{c}')))
             db.session.commit()
             flash('Produção atualizada com sucesso.')
-            return redirect(url_for('painel_gerente', analista_id=usuario_sel.id, mes=mes))
+            return redirect(url_for('painel_gerente',
+                                    analista_id=usuario_sel.id,
+                                    mes=mes,
+                                    semana=selected_semana))
 
-        # busca processos e monta totais semanais
+        # construir dicionários para template
         processos_info = {
-            s:[
-                LinhaProducao.query.filter_by(
-                    usuario_id=usuario_sel.id, mes=mes, semana=s
-                ).offset(i).first()
+            s: [
+                (LinhaProducao.query
+                    .filter_by(usuario_id=usuario_sel.id, mes=mes, semana=s)
+                    .offset(i).first())
                 for i in range(linhas)
-            ] for s in semanas
+            ]
+            for s in semanas
         }
         for s in semanas:
             for p in LinhaProducao.query.filter_by(usuario_id=usuario_sel.id, mes=mes, semana=s):
                 for c in campos:
-                    if getattr(p,c):
-                        totais[s][c] += 1
+                    if getattr(p, c):
+                        totais_semanais[s][c] += 1
 
-        # totais do mês / progresso
-        total_feito     = sum(sum(vals.values()) for vals in totais.values())
-        percentual_meta = min(int((total_feito / meta)*100), 100)
-        # alerta de meta semanal
+        # totais do mês e progresso
+        total_feito     = sum(sum(vals.values()) for vals in totais_semanais.values())
+        percentual_meta = min(int((total_feito / meta) * 100), 100)
+
+        # alertas semanais
         for s in semanas:
-            feito   = sum(totais[s].values())
+            feito   = sum(totais_semanais[s].values())
             esperado= 25 if usuario_sel.modalidade=='presencial' else 28
             if feito < esperado:
                 alertas[s] = f"Faltam {esperado - feito} tarefas"
 
-    # totais anuais (para o manager poder comparar)
+    # totais anuais (comparativo)
     totais_anuais = {m:{c:0 for c in campos} for m in meses}
     for m in meses:
         for p in LinhaProducao.query.filter_by(mes=m):
             for c in campos:
-                if getattr(p,c):
+                if getattr(p, c):
                     totais_anuais[m][c] += 1
 
-    # total do mês por tipo de peça (para o gráfico pessoal do gestor)
-    total_mes = {c: sum(totais[s][c] for s in semanas) for c in campos}
+    # total do mês por tipo de peça (mini-relatório)
+    total_mes = {c: sum(totaiss[c] for totaiss in totais_semanais.values())
+                 for c in campos}
 
     return render_template(
         'painel_gerente.html',
-        analistas_presencial  = analistas_presencial,
-        analistas_teletrabalho= analistas_teletrabalho,
-        usuario_selecionado   = usuario_sel,
-        meses                 = meses,
-        mes                   = mes,
-        semanas               = semanas,
-        linhas                = linhas,
-        campos                = campos,
-        processos_info        = processos_info,
-        totais                = totais,
-        total_mes             = total_mes,
-        total_feito           = total_feito,
-        meta                  = meta,
-        percentual_meta       = percentual_meta,
-        alertas               = alertas,
-        totais_anuais         = totais_anuais
+        analistas_presencial   = analistas_presencial,
+        analistas_teletrabalho = analistas_teletrabalho,
+        usuario_selecionado    = usuario_sel,
+        meses                  = meses,
+        mes                    = mes,
+        semanas                = semanas,
+        linhas                 = linhas,
+        campos                 = campos,
+        processos_info         = processos_info,
+        totais                 = totais_semanais,
+        total_mes              = total_mes,
+        total_feito            = total_feito,
+        meta                   = meta,
+        percentual_meta        = percentual_meta,
+        selected_semana        = selected_semana,
+        alertas                = alertas,
+        totais_anuais          = totais_anuais
     )
-
 # --- Acompanhamento Pessoal com filtro de mês e semana ---
 @app.route('/acompanhamento-pessoal')
 @login_required
