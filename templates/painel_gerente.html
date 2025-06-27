@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="p-6">
-  <!-- header with maximize and logout -->
+  <!-- Header -->
   <div class="flex justify-between items-center mb-4">
     <h1 class="text-2xl font-bold">Painel dos Gestores</h1>
     <div class="flex space-x-2">
@@ -14,7 +14,7 @@
     </div>
   </div>
 
-  <!-- filtro de analista, mês e semana -->
+  <!-- Filtros -->
   <form method="get" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
     <div>
       <label class="block font-semibold mb-1">Analista</label>
@@ -46,9 +46,7 @@
     <div>
       <label class="block font-semibold mb-1">Semana</label>
       <select name="semana" class="border rounded w-full p-2">
-        <option value="Mês inteiro" {% if selected_semana=='Mês inteiro' %}selected{% endif %}>
-          Mês inteiro
-        </option>
+        <option value="Mês inteiro" {% if selected_semana=='Mês inteiro' %}selected{% endif %}>Mês inteiro</option>
         {% for s in semanas %}
           <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
@@ -65,11 +63,11 @@
   </form>
 
   {% if usuario_selecionado %}
-    <!-- mini-relatório igual ao acompanhamento pessoal -->
+    <!-- Mini-relatório (igual ao Acompanhamento Pessoal) -->
     <div class="bg-white p-4 rounded shadow mb-6">
       <h2 class="text-xl font-semibold mb-4">Produção de {{ usuario_selecionado.nome }} – {{ mes }}</h2>
 
-      <!-- progresso mensal -->
+      <!-- Progresso Mensal -->
       <div class="mb-4">
         <h3 class="font-semibold">Progresso Mensal</h3>
         <div class="w-full h-4 bg-gray-200 rounded mb-2">
@@ -78,13 +76,13 @@
         <p class="text-sm">{{ total_feito }} de {{ meta }} processos ({{ percentual_meta }}%)</p>
       </div>
 
-      <!-- gráfico semanal/mês -->
+      <!-- Gráfico -->
       <div class="mb-4">
         <h3 class="font-semibold">Gráfico de Produção</h3>
         <canvas id="graficoMini"></canvas>
       </div>
 
-      <!-- contagem -->
+      <!-- Contagem -->
       <div>
         <h3 class="font-semibold mb-2">Contagem de Produção</h3>
         {% if selected_semana=='Mês inteiro' %}
@@ -125,13 +123,11 @@
       </div>
     </div>
 
-    <!-- formulário de edição detalhada continua exatamente como antes -->
+    <!-- Formulário de edição detalhada (sem alterações) -->
     <form method="post" action="{{ url_for('painel_gerente', analista_id=usuario_selecionado.id, mes=mes) }}">
-      {% for semana in semanas %}
+      {% for s in semanas %}
         <div class="mb-6">
-          <h3 class="font-semibold bg-blue-200 text-blue-900 px-3 py-2 rounded mb-2">
-            Semana: {{ semana }}
-          </h3>
+          <h3 class="font-semibold bg-blue-200 text-blue-900 px-3 py-2 rounded mb-2">Semana: {{ s }}</h3>
           <table class="w-full table-auto border">
             <thead class="bg-blue-400 text-white">
               <tr>
@@ -139,7 +135,7 @@
                 <th class="border px-2">Nº Processo</th>
                 <th class="border px-2">Requerente</th>
                 <th class="border px-2">Fase</th>
-                {% for campo in totais[semana].keys() %}
+                {% for campo in totais[s].keys() %}
                   <th class="border px-2">{{ campo.replace('_',' ')|title }}</th>
                 {% endfor %}
                 <th class="border px-2">Observação</th>
@@ -147,34 +143,30 @@
             </thead>
             <tbody>
               {% for i in range(linhas) %}
-                {% set p = processos_info[semana][i] %}
+                {% set p = processos_info[s][i] %}
                 <tr>
                   <td class="border px-2">{{ i+1 }}</td>
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_numero_processo"
-                           value="{{ p.numero_processo if p else '' }}"
-                           class="w-full border p-1">
+                    <input type="text" name="{{ s }}_{{ i }}_numero_processo"
+                           value="{{ p.numero_processo if p else '' }}" class="w-full border p-1">
                   </td>
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_requerente"
-                           value="{{ p.requerente if p else '' }}"
-                           class="w-full border p-1">
+                    <input type="text" name="{{ s }}_{{ i }}_requerente"
+                           value="{{ p.requerente if p else '' }}" class="w-full border p-1">
                   </td>
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_fase"
-                           value="{{ p.fase if p else '' }}"
-                           class="w-full border p-1">
+                    <input type="text" name="{{ s }}_{{ i }}_fase"
+                           value="{{ p.fase if p else '' }}" class="w-full border p-1">
                   </td>
-                  {% for campo in totais[semana].keys() %}
+                  {% for campo in totais[s].keys() %}
                     <td class="border px-2 text-center">
-                      <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}"
-                              {% if p and (p|get_attr(campo)) %}checked{% endif %}>
+                      <input type="checkbox" name="{{ s }}_{{ i }}_{{ campo }}"
+                             {% if p and (p|get_attr(campo)) %}checked{% endif %}>
                     </td>
                   {% endfor %}
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_obs"
-                           value="{{ p.observacao if p else '' }}"
-                           class="w-full border p-1">
+                    <input type="text" name="{{ s }}_{{ i }}_obs"
+                           value="{{ p.observacao if p else '' }}" class="w-full border p-1">
                   </td>
                 </tr>
               {% endfor %}
@@ -182,7 +174,6 @@
           </table>
         </div>
       {% endfor %}
-
       <div class="text-right">
         <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
           Salvar Produção
@@ -192,18 +183,17 @@
   {% endif %}
 </div>
 
-<!-- Fullscreen helper and mini chart setup -->
+<!-- Helpers and Mini Chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   function toggleFullScreen() {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
-    } else if (document.exitFullscreen) {
+    } else {
       document.exitFullscreen();
     }
   }
 
-  // mini-chart
   const ctxMini = document.getElementById('graficoMini').getContext('2d');
   new Chart(ctxMini, {
     type: 'bar',
@@ -212,17 +202,14 @@
       datasets: [{
         label: selected_semana === 'Mês inteiro' ? 'Mês inteiro' : selected_semana,
         data: selected_semana === 'Mês inteiro'
-               ? {{ total_mes|tojson }} 
-               : {{ totais|tojson }}[selected_semana] | join(',') | tojson,
+              ? {{ total_mes|tojson }}
+              : {{ totais|tojson }}[selected_semana],
         backgroundColor: 'rgba(54,162,235,0.6)',
         borderColor: 'rgba(54,162,235,1)',
         borderWidth: 1
       }]
     },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true } }
-    }
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
   });
 </script>
 {% endblock %}
