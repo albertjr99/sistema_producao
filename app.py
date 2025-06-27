@@ -134,62 +134,35 @@ def primeiro_acesso():
     
 # ... (seu setup do app, db, Usuario, LinhaProducao, gerar_semanas, etc.) ...
 
+
+@app.after_request
+def add_header(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 @app.route('/acompanhamento-anual')
 @login_required
 def acompanhamento_anual():
-    campos = [
-        'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
-        'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros'
-    ]
+    campos = [ 'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+               'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros' ]
     meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
-    # Parâmetros de filtro
-    selected_mes    = request.args.get('mes', default=meses[0])
-    if selected_mes not in meses:
-        selected_mes = meses[0]
-    selected_semana = request.args.get('semana', default='Mês inteiro')
+    totais_anuais = { m: {c:0 for c in campos} for m in meses }
+    for p in LinhaProducao.query.filter(LinhaProducao.mes.in_(meses)).all():
+        for c in campos:
+            if getattr(p, c):
+                totais_anuais[p.mes][c] += 1
 
-    # Gera as semanas do mês selecionado
-    ano     = datetime.now().year
-    mes_idx = meses.index(selected_mes)
-    semanas = gerar_semanas(mes_idx + 6, ano)
-
-    # Totais por semana e total do mês
-    totais     = {}
-    total_mes  = {c: 0 for c in campos}
-    total_feito = 0
-
-    for s in semanas:
-        cont = {c: 0 for c in campos}
-        procs = LinhaProducao.query.filter_by(
-            usuario_id=current_user.id,
-            mes=selected_mes,
-            semana=s
-        ).all()
-        for p in procs:
-            for c in campos:
-                if getattr(p, c):
-                    cont[c] += 1
-                    total_mes[c] += 1
-                    total_feito += 1
-        totais[s] = cont
-
-    # Meta mensal e porcentagem
-    meta = 112 if current_user.modalidade == 'teletrabalho' else 100
-    percentual_meta = round((total_feito / meta) * 100, 1) if meta > 0 else 0
+    grafico_anos = { c: sum(m[c] for m in totais_anuais.values()) for c in campos }
 
     return render_template(
         'acompanhamento_anual.html',
-        meses=meses,
-        semanas=semanas,
-        campos=campos,
-        selected_mes=selected_mes,
-        selected_semana=selected_semana,
-        totais=totais,
-        total_mes=total_mes,
-        total_feito=total_feito,
-        meta=meta,
-        percentual_meta=percentual_meta
+        totais_anuais = totais_anuais,
+        grafico_anos   = grafico_anos,
+        meses          = meses,
+        campos         = campos
     )
 
 
