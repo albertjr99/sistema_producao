@@ -132,12 +132,6 @@ def primeiro_acesso():
         flash('Senha definida com sucesso. Agora faça login.')
     return redirect(url_for('login'))
     
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import login_required, current_user
-from sqlalchemy import func
-from datetime import datetime
-import calendar
-
 # ... (seu setup do app, db, Usuario, LinhaProducao, gerar_semanas, etc.) ...
 
 @app.route('/acompanhamento-anual')
