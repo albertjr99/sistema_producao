@@ -120,10 +120,10 @@
     }
   }
 
-  // prepara dados via Jinja (sem ?: dentro de {{ }})
   const labels = {{ campos|tojson }};
-  const data   = {{ (selected_semana=='Mês inteiro'
-                      and total_mes.values() or totais[selected_semana].values())|list|tojson }};
+  const data   = {{ (selected_semana == 'Mês inteiro'
+                      and total_mes.values() or totais[selected_semana].values())
+                     |list|tojson }};
 
   new Chart(
     document.getElementById('graficoProducao').getContext('2d'),
