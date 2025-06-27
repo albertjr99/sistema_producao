@@ -15,7 +15,7 @@
   </div>
 
   <!-- filtro de analista, mês e semana -->
-  <form method="get" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+  <form method="get" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
     <div>
       <label class="block font-semibold mb-1">Analista</label>
       <select name="analista_id" class="border rounded w-full p-2">
@@ -38,7 +38,7 @@
     <div>
       <label class="block font-semibold mb-1">Mês</label>
       <select name="mes" class="border rounded w-full p-2">
-        {% for m in ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'] %}
+        {% for m in meses %}
           <option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>
         {% endfor %}
       </select>
@@ -54,7 +54,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class="md:col-span-3 flex space-x-2 mt-2">
+    <div class="flex items-end space-x-2">
       <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
         Visualizar Produção
       </button>
@@ -78,7 +78,7 @@
         <p class="text-sm">{{ total_feito }} de {{ meta }} processos ({{ percentual_meta }}%)</p>
       </div>
 
-      <!-- gráfico semanal/mes -->
+      <!-- gráfico semanal/mês -->
       <div class="mb-4">
         <h3 class="font-semibold">Gráfico de Produção</h3>
         <canvas id="graficoMini"></canvas>
@@ -203,23 +203,26 @@
     }
   }
 
-  // render mini-chart once
+  // mini-chart
   const ctxMini = document.getElementById('graficoMini').getContext('2d');
   new Chart(ctxMini, {
     type: 'bar',
     data: {
       labels: {{ campos|tojson }},
       datasets: [{
-        label: (selectedSemana==='Mês inteiro'?'Mês inteiro':selectedSemana),
-        data: (selectedSemana==='Mês inteiro'
-               ? {{ total_mes|tojson }}.map(c=>c)
-               : {{ totais|tojson }}[selectedSemana]|mapValues),
+        label: selected_semana === 'Mês inteiro' ? 'Mês inteiro' : selected_semana,
+        data: selected_semana === 'Mês inteiro'
+               ? {{ total_mes|tojson }} 
+               : {{ totais|tojson }}[selected_semana] | join(',') | tojson,
         backgroundColor: 'rgba(54,162,235,0.6)',
         borderColor: 'rgba(54,162,235,1)',
         borderWidth: 1
       }]
     },
-    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } }
+    }
   });
 </script>
 {% endblock %}
