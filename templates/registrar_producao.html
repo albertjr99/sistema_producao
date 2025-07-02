@@ -1,201 +1,122 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8">
-  <title>Registrar Produção - {{ usuario.nome }}</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+{% extends 'base.html' %}
+{% block title %}Registrar Produção – {{ usuario.nome }}{% endblock %}
 
-  <style>
-    table.min-w-full tbody td,
-    table.min-w-full tbody th {
-      text-align: center;
-    }
+{% block content %}
+<div class="space-y-6">
 
-    table.min-w-full thead {
-      background-color: #4A90E2;
-    }
-
-    table.min-w-full thead th {
-      color: white;
-      font-weight: 600;
-      padding: 8px;
-    }
-
-    table.min-w-full tbody tr:nth-child(even) {
-      background-color: #F5F7FA;
-    }
-
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-
-      .impressao-container,
-      .impressao-container * {
-        visibility: visible;
-      }
-
-      .impressao-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-      }
-    }
-  </style>
-
-  <script>
-    function limitarCheckboxesPorLinha(prefixo, linha) {
-      const checkboxes = document.querySelectorAll(`[name^=\"${prefixo}_${linha}_\"]`);
-      checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-          const marcados = Array.from(checkboxes).filter(c => c.checked);
-          if (marcados.length > 1) {
-            alert('Você só pode marcar um campo por linha.');
-            checkbox.checked = false;
-          }
-        });
-      });
-    }
-
-    function imprimirSelecionadas() {
-      const selecionadas = Array.from(document.querySelectorAll('.semana-selector:checked'))
-        .map(cb => cb.value);
-
-      document.querySelectorAll('.semana-impressao').forEach(div => {
-        if (selecionadas.includes(div.dataset.semana)) {
-          div.style.display = 'block';
-        } else {
-          div.style.display = 'none';
-        }
-      });
-
-      window.print();
-
-      document.querySelectorAll('.semana-impressao').forEach(div => {
-        div.style.display = '';
-      });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const totalLinhas = {{ linhas }};
-      const semanas = {{ semanas|tojson }};
-      semanas.forEach(semana => {
-        for (let i = 0; i < totalLinhas; i++) {
-          limitarCheckboxesPorLinha(semana, i);
-        }
-      });
-    });
-  </script>
-</head>
-
-<body class="{{ 'bg-pink-100' if usuario.nome.upper() in ['SHIRLENE','ALINE','MARIANA','ANA LUCIA','CAROLINE','FLÁVIA','CRISTINA','SILVANA','SORAYA'] else 'bg-blue-100' }} p-6">
-  <div class="container mx-auto px-4">
-    <div class="flex items-center justify-between mb-4 nao-imprimir">
-      <div>
-        <h1 class="text-2xl font-bold">Registrar Produção - {{ usuario.nome }}</h1>
-        <div class="flex items-center mt-2 space-x-2">
-          <a href="{{ url_for('registrar_producao', mes=mes_anterior) }}" class="text-blue-600 hover:text-blue-800">&#8592; {{ mes_anterior }}</a>
-          <span class="font-semibold">{{ mes_atual }}</span>
-          <a href="{{ url_for('registrar_producao', mes=mes_posterior) }}" class="text-blue-600 hover:text-blue-800">{{ mes_posterior }} &#8594;</a>
-        </div>
-      </div>
-      <div class="flex space-x-2">
-        <button id="btnFullscreen" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          ⛶ Maximizar Tela
-        </button>
-        <a href="{{ url_for('logout') }}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Logoff</a>
-        <a href="{{ url_for('acompanhamento_pessoal') }}" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Acompanhar Produção Pessoal</a>
-      </div>
+  <!-- HEADER E CONTROLES (não imprime) -->
+  <div class="flex justify-between items-center nao-imprimir">
+    <h1 class="text-2xl font-bold">Registrar Produção – {{ usuario.nome }}</h1>
+    <div class="flex space-x-2">
+      <button onclick="toggleFullScreen()" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+        ⛶
+      </button>
+      <a href="{{ url_for('logout') }}" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+        Sair
+      </a>
+      <a href="{{ url_for('acompanhamento_pessoal') }}" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+        Acompanhar Pessoal
+      </a>
     </div>
-
-    <form method="post">
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white shadow rounded-lg p-4">
-          <h2 class="font-semibold text-lg mb-2">Meta Mensal</h2>
-          <div class="w-full h-4 bg-gray-200 rounded">
-            <div class="h-4 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
-          </div>
-          <p class="text-sm mt-2">{{ total_feito }} de {{ meta }} processos</p>
-        </div>
-      </div>
-
-      <div class="mb-6">
-        <label class="block font-semibold mb-2">Selecionar semanas para impressão:</label>
-        <div class="flex flex-wrap gap-4">
-          {% for semana in semanas %}
-            <label>
-              <input type="checkbox" class="semana-selector" value="{{ semana }}" checked>
-              {{ semana }}
-            </label>
-          {% endfor %}
-        </div>
-        <button type="button" onclick="imprimirSelecionadas()" class="mt-4 bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
-          Imprimir Selecionadas
-        </button>
-      </div>
-
-      <div class="impressao-container">
-        {% for semana in semanas %}
-        <div class="semana-impressao mb-6" data-semana="{{ semana }}">
-          <h2 class="text-xl font-semibold mb-2">Semana: {{ semana }}</h2>
-          <table class="min-w-full bg-white border">
-            <thead class="bg-gray-200">
-              <tr>
-                <th class="border px-2">Linha</th>
-                <th class="border px-2">Nº Processo</th>
-                <th class="border px-2">Requerente</th>
-                <th class="border px-2">Fase</th>
-                {% for campo in campos %}
-                <th class="border px-2">{{ campo.replace('_', ' ') | title }}</th>
-                {% endfor %}
-                <th class="border px-2">Observação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for i in range(linhas) %}
-              <tr>
-                <td class="border px-2">{{ i+1 }}</td>
-                <td class="border px-2">{{ processos_info[semana][i].numero_processo or '' }}</td>
-                <td class="border px-2">{{ processos_info[semana][i].requerente or '' }}</td>
-                <td class="border px-2">{{ processos_info[semana][i].fase or '' }}</td>
-                {% for campo in campos %}
-                <td class="border px-2">
-                  <input type="checkbox" name="{{ semana }}_{{ i }}_{{ campo }}" {% if processos_info[semana][i] and processos_info[semana][i][campo] %}checked{% endif %}>
-                </td>
-                {% endfor %}
-                <td class="border px-2">
-                  <input type="text" name="{{ semana }}_{{ i }}_obs" class="w-full border rounded p-1" value="{{ processos_info[semana][i].observacao if processos_info[semana][i] }}">
-                </td>
-                <input type="hidden" name="{{ semana }}_{{ i }}_indice_linha" value="{{ i }}">
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-
-          <div class="mt-4 text-right">
-            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-              Salvar Produção
-            </button>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </form>
-
   </div>
 
-  <script>
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-    document.getElementById('btnFullscreen').addEventListener('click', toggleFullScreen);
-  </script>
+  <!-- FORMULÁRIO DE CONTROLES (não imprime) -->
+  <form method="post" class="nao-imprimir">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
 
-</body>
-</html>
+      <!-- Meta Mensal -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="font-semibold mb-2">Meta Mensal</h2>
+        <div class="w-full bg-gray-200 rounded h-3 mb-2">
+          <div class="h-3 bg-green-500 rounded" style="width: {{ percentual_meta }}%"></div>
+        </div>
+        <p class="text-sm">{{ total_feito }} de {{ meta }} processos</p>
+      </div>
+
+      <!-- pode adicionar mais cards aqui, se quiser -->
+    </div>
+
+    <!-- Seletor de semanas para impressão -->
+    <div class="mb-4">
+      <p class="font-semibold mb-2">Selecionar semanas para impressão:</p>
+      <div class="flex flex-wrap gap-2">
+        {% for semana in semanas %}
+        <label class="inline-flex items-center">
+          <input type="checkbox" class="semana-selector" value="{{ semana }}" checked>
+          <span class="ml-2">{{ semana }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="button" onclick="imprimirSelecionadas()" class="mt-3 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">
+        Imprimir Selecionadas
+      </button>
+    </div>
+  </form>
+
+  <!-- CONTEÚDO A SER IMPRESSO -->
+  <div class="impressao-container">
+    {% for semana in semanas %}
+    <div class="mb-6 semana-impressao" data-semana="{{ semana }}">
+      <h2 class="text-xl font-semibold mb-2">Semana: {{ semana }}</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse text-sm">
+          <thead class="bg-blue-600 text-white">
+            <tr>
+              <th class="border px-2 py-1">Linha</th>
+              <th class="border px-2 py-1">Nº Processo</th>
+              <th class="border px-2 py-1">Requerente</th>
+              <th class="border px-2 py-1">Fase</th>
+              {% for campo in campos %}
+              <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
+              {% endfor %}
+              <th class="border px-2 py-1">Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in range(linhas) %}
+            {% set p = processos_info[semana][i] %}
+            <tr class="even:bg-gray-100">
+              <td class="border px-2 py-1 text-center">{{ i+1 }}</td>
+              <td class="border px-2 py-1">{{ p.numero_processo or '' }}</td>
+              <td class="border px-2 py-1">{{ p.requerente or '' }}</td>
+              <td class="border px-2 py-1">{{ p.fase or '' }}</td>
+              {% for campo in campos %}
+              <td class="border px-2 py-1 text-center">
+                <input type="checkbox" disabled {% if p and getattr(p, campo) %}checked{% endif %}>
+              </td>
+              {% endfor %}
+              <td class="border px-2 py-1">{{ p.observacao or '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Quando mudar um checkbox de semana, esconde/mostra aquela semana
+  document.querySelectorAll('.semana-selector').forEach(cb =>
+    cb.addEventListener('change', () => {
+      const semana = cb.value;
+      const div = document.querySelector(`.semana-impressao[data-semana="${semana}"]`);
+      div.style.display = cb.checked ? 'block' : 'none';
+    })
+  );
+
+  function imprimirSelecionadas() {
+    document.querySelectorAll('.semana-selector').forEach(cb => {
+      const div = document.querySelector(`.semana-impressao[data-semana="${cb.value}"]`);
+      div.style.display = cb.checked ? 'block' : 'none';
+    });
+    window.print();
+    // depois de imprimir, volta a exibir tudo
+    document.querySelectorAll('.semana-impressao').forEach(div => div.style.display = 'block');
+  }
+</script>
+{% endblock %}
