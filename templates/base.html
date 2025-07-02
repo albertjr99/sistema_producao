@@ -3,51 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Sistema de Produção{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    :root {
-      --primary: #1e40af;     /* azul escuro */
-      --primary-light: #3b82f6; /* azul claro */
-      --accent: #10b981;      /* verde */
-    }
-    .btn-primary {
-      @apply bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white font-medium rounded py-2 px-4;
-    }
-    .btn-accent {
-      @apply bg-[var(--accent)] hover:bg-green-600 text-white font-medium rounded py-2 px-4;
-    }
-    .card {
-      @apply bg-white shadow-sm rounded-lg p-6 mb-6;
+    @media print {
+      .nao-imprimir { display: none !important; }
     }
   </style>
-  {% block head %}{% endblock %}
 </head>
-<body class="bg-gray-100 text-gray-800">
-
-  <!-- Top bar comum -->
-  <header class="bg-white shadow px-6 py-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold">STC - PRODUÇÃO</h1>
-    <div class="space-x-2">
-      <button onclick="toggleFullScreen()" class="btn-primary text-sm">↔ Maximizar</button>
-      <a href="{{ url_for('logout') }}" class="btn-primary text-sm">Logoff</a>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+  <!-- HEADER -->
+  <header class="bg-white shadow nao-imprimir">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-xl font-bold">Sistema de Produção</h1>
+      <div class="space-x-2">
+        <button onclick="toggleFullScreen()" class="px-3 py-1 bg-blue-600 text-white rounded">⛶</button>
+        <a href="{{ url_for('logout') }}" class="px-3 py-1 bg-red-600 text-white rounded">Sair</a>
+      </div>
     </div>
   </header>
 
-  <!-- Conteúdo específico de cada página -->
-  <main class="max-w-6xl mx-auto mt-8 pb-16">
+  <!-- MAIN CONTENT -->
+  <main class="container mx-auto px-4 py-6 flex-1">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Script de fullscreen disponível em todas -->
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    function toggleFullScreen(){
-      if (!document.fullscreenElement) 
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
-      else 
+      } else {
         document.exitFullscreen();
+      }
     }
   </script>
-
   {% block scripts %}{% endblock %}
 </body>
 </html>
