@@ -1,3 +1,4 @@
+{# templates/registrar_producao.html #}
 {% extends 'base.html' %}
 {% block title %}Registrar Produção – {{ usuario.nome }}{% endblock %}
 
@@ -33,7 +34,7 @@
         <p class="text-sm">{{ total_feito }} de {{ meta }} processos</p>
       </div>
 
-      <!-- pode adicionar mais cards aqui, se quiser -->
+      <!-- (reserve espaço para futuros cards) -->
     </div>
 
     <!-- Seletor de semanas para impressão -->
@@ -82,7 +83,7 @@
               <td class="border px-2 py-1">{{ p.fase or '' }}</td>
               {% for campo in campos %}
               <td class="border px-2 py-1 text-center">
-                <input type="checkbox" disabled {% if p and getattr(p, campo) %}checked{% endif %}>
+                <input type="checkbox" disabled {% if p and (p|get_attr(campo)) %}checked{% endif %}>
               </td>
               {% endfor %}
               <td class="border px-2 py-1">{{ p.observacao or '' }}</td>
@@ -100,22 +101,31 @@
 
 {% block scripts %}
 <script>
-  // Quando mudar um checkbox de semana, esconde/mostra aquela semana
+  // full-screen toggle
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  // controle de exibição por semana
   document.querySelectorAll('.semana-selector').forEach(cb =>
     cb.addEventListener('change', () => {
-      const semana = cb.value;
-      const div = document.querySelector(`.semana-impressao[data-semana="${semana}"]`);
+      const div = document.querySelector(`.semana-impressao[data-semana="${cb.value}"]`);
       div.style.display = cb.checked ? 'block' : 'none';
     })
   );
 
+  // imprimir apenas as semanas marcadas
   function imprimirSelecionadas() {
     document.querySelectorAll('.semana-selector').forEach(cb => {
       const div = document.querySelector(`.semana-impressao[data-semana="${cb.value}"]`);
       div.style.display = cb.checked ? 'block' : 'none';
     });
     window.print();
-    // depois de imprimir, volta a exibir tudo
+    // restaurar exibição total
     document.querySelectorAll('.semana-impressao').forEach(div => div.style.display = 'block');
   }
 </script>
