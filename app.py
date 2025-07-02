@@ -118,9 +118,10 @@ def logout():
 
 @app.route('/primeiro-acesso', methods=['POST'])
 def primeiro_acesso():
-    email = request.form['email']
-    nova_senha = request.form['nova_senha']
-    usuario = Usuario.query.filter_by(email=email).first()
+    nome = request.form.get('nome')
+    nova_senha = request.form.get('nova_senha')
+    # busca usuario pelo nome, ignorando maiúsculas/minúsculas
+    usuario = Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first()
     if not usuario:
         flash('Usuário não encontrado.')
     elif usuario.primeiro_acesso_realizado:
