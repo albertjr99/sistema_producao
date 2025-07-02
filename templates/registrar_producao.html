@@ -9,14 +9,9 @@
   <div class="flex justify-between items-center nao-imprimir">
     <h1 class="text-2xl font-bold">Registrar Produção – {{ usuario.nome }}</h1>
     <div class="flex space-x-2">
-      <button onclick="toggleFullScreen()" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-        ⛶
-      </button>
-      <a href="{{ url_for('logout') }}" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-        Sair
       </a>
       <a href="{{ url_for('acompanhamento_pessoal') }}" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-        Acompanhar Pessoal
+        Estatísticas de Produção Pessoal
       </a>
     </div>
   </div>
