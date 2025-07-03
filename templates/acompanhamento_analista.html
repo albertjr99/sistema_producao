@@ -81,20 +81,27 @@
 </div>
 {% endblock %}
 
+
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   (function(){
-    const campos = {{ campos|tojson }};
-    const data   = campos.map(c => {{ counts|tojson }}[c]);
-    const ctx    = document.getElementById('chartAnalista').getContext('2d');
+    // 1) lê labels (campos) e o objeto counts vindo do servidor
+    const campos    = {{ campos|tojson }};
+    const countsMap = {{ counts|tojson }};
+
+    // 2) monta o array de valores na mesma ordem de 'campos'
+    const data = campos.map(c => countsMap[c] || 0);
+
+    // 3) inicializa o gráfico
+    const ctx = document.getElementById('chartAnalista').getContext('2d');
     new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: campos.map(c=>c.replace('_',' ') ),
+        labels: campos.map(c => c.replace(/_/g,' ')),
         datasets: [{
           label: 'Contagem de Processos',
-          data,
+          data: data,
           backgroundColor: 'rgba(54,162,235,0.6)',
           borderColor: 'rgba(54,162,235,1)',
           borderWidth: 1
