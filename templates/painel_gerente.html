@@ -61,65 +61,6 @@
   </div>
   {% endif %}
 
-  <!-- botão que abre/fecha o painel de acompanhamento mensal -->
-  <button id="btnToggleAcompanhamento"
-          class="bg-indigo-600 text-white px-4 py-2 rounded mb-4">
-    Acompanhar produção (resumo rápido)
-  </button>
-
-  <!-- painel oculto com a tabela de contagem -->
-  <div id="painelAcompanhamento" class="hidden bg-white p-4 rounded shadow mb-6">
-    <button id="btnVoltarPrincipal"
-            class="mb-4 bg-gray-500 text-white px-3 py-1 rounded">
-      ← Voltar à página principal
-    </button>
-
-    {% if usuario_selecionado %}
-      {% for semana, contagem in totais.items() %}
-        <div class="mb-4">
-          <div class="bg-blue-200 text-blue-900 px-3 py-2 rounded mb-2">
-            <h3 class="font-semibold">Semana: {{ semana }}</h3>
-          </div>
-          <table class="w-full table-auto border text-sm">
-            <thead class="bg-blue-400 text-white">
-              <tr>
-                {% for campo, _ in contagem.items() %}
-                  <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {% for _, valor in contagem.items() %}
-                  <td class="border px-2 py-1 text-center">{{ valor }}</td>
-                {% endfor %}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      {% endfor %}
-    {% else %}
-      <p class="text-gray-600">
-        Selecione antes um analista e clique em “Visualizar Produção”.
-      </p>
-    {% endif %}
-  </div>
-
-  <!-- script para alternar visibilidade -->
-  <script>
-    document.getElementById('btnToggleAcompanhamento')
-      .addEventListener('click', () => {
-        document.getElementById('painelAcompanhamento')
-                .classList.toggle('hidden');
-      });
-
-    document.getElementById('btnVoltarPrincipal')
-      .addEventListener('click', () => {
-        document.getElementById('painelAcompanhamento')
-                .classList.add('hidden');
-      });
-  </script>
-
   {% if usuario_selecionado %}
     <!-- produção detalhada (igual ao que você já tinha) -->
     <div class="bg-blue-200 text-blue-900 px-4 py-2 rounded mb-4">
