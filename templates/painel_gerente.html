@@ -3,20 +3,12 @@
 <div class="p-6">
   <h1 class="text-2xl font-bold mb-4">Painel dos Gestores</h1>
 
-  <!-- Estatísticas: todo setor + individual -->
-  <div class="mb-6 flex flex-wrap gap-4">
+  <!-- link para estatísticas anuais do setor -->
+  <div class="mb-6">
     <a href="{{ url_for('acompanhamento_anual') }}"
        class="bg-purple-600 text-white px-4 py-2 rounded">
       Estatísticas de todo setor
     </a>
-    {% if usuario_selecionado %}
-    <a href="{{ url_for('acompanhamento_analista',
-                        analista_id=usuario_selecionado.id,
-                        mes=mes) }}"
-       class="bg-indigo-600 text-white px-4 py-2 rounded">
-      Estatísticas da produção individual de {{ usuario_selecionado.nome }}
-    </a>
-    {% endif %}
   </div>
 
   <!-- filtro de analista e mês -->
@@ -57,64 +49,22 @@
     </div>
   </form>
 
-  <!-- painel oculto com a tabela de contagem (resumo rápido) -->
-  <button id="btnToggleAcompanhamento"
-          class="bg-indigo-600 text-white px-4 py-2 rounded mb-4">
-    Acompanhar produção (resumo rápido)
-  </button>
-  <div id="painelAcompanhamento" class="hidden bg-white p-4 rounded shadow mb-6">
-    <button id="btnVoltarPrincipal"
-            class="mb-4 bg-gray-500 text-white px-3 py-1 rounded">
-      ← Voltar à página principal
-    </button>
-
-    {% if usuario_selecionado %}
-      {% for semana, contagem in totais.items() %}
-        <div class="mb-4">
-          <div class="bg-blue-200 text-blue-900 px-3 py-2 rounded mb-2">
-            <h3 class="font-semibold">Semana: {{ semana }}</h3>
-          </div>
-          <table class="w-full table-auto border text-sm">
-            <thead class="bg-blue-400 text-white">
-              <tr>
-                {% for campo, _ in contagem.items() %}
-                  <th class="border px-2 py-1">{{ campo.replace('_',' ')|title }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {% for _, valor in contagem.items() %}
-                  <td class="border px-2 py-1 text-center">{{ valor }}</td>
-                {% endfor %}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      {% endfor %}
-    {% else %}
-      <p class="text-gray-600">
-        Selecione antes um analista e clique em “Visualizar Produção”.
-      </p>
-    {% endif %}
+  {% if usuario_selecionado %}
+  <!-- novo botão que abre a página separada de acompanhamento -->
+  <div class="mb-16">
+    <a href="{{ url_for('acompanhamento_analista',
+                        analista_id=usuario_selecionado.id,
+                        mes=mes) }}"
+       class="bg-indigo-600 text-white px-4 py-2 rounded">
+      Ver Estatísticas da produção individual de {{ usuario_selecionado.nome }}
+    </a>
   </div>
-  <script>
-    document.getElementById('btnToggleAcompanhamento')
-      .addEventListener('click', () => {
-        document.getElementById('painelAcompanhamento')
-                .classList.toggle('hidden');
-      });
-    document.getElementById('btnVoltarPrincipal')
-      .addEventListener('click', () => {
-        document.getElementById('painelAcompanhamento')
-                .classList.add('hidden');
-      });
-  </script>
+  {% endif %}
 
   {% if usuario_selecionado %}
-    <!-- produção detalhada -->
+    <!-- produção detalhada (igual ao que você já tinha) -->
     <div class="bg-blue-200 text-blue-900 px-4 py-2 rounded mb-4">
-      <h2 class="text-xl font-semibold mb-16">
+      <h2 class="text-xl font-semibold">
         Produção de {{ usuario_selecionado.nome }} – {{ mes }}
       </h2>
     </div>
@@ -137,7 +87,7 @@
       <p>{{ total_feito }} de {{ meta }} processos ({{ percentual_meta }}%)</p>
     </div>
 
-    <!-- edição detalhada -->
+    <!-- painel de edição detalhada -->
     <form method="post"
           action="{{ url_for('painel_gerente',
                               analista_id=usuario_selecionado.id,
