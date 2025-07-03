@@ -3,15 +3,29 @@
 <div class="p-6">
   <h1 class="text-2xl font-bold mb-4">Painel dos Gestores</h1>
 
-  <!-- link para estatísticas anuais do setor -->
-  <div class="mb-6">
+  <!-- ===============================
+       1) Botões de estatísticas
+       =============================== -->
+  <div class="flex flex-wrap gap-4 mb-16">
+    <!-- Estatísticas de todo setor -->
     <a href="{{ url_for('acompanhamento_anual') }}"
        class="bg-purple-600 text-white px-4 py-2 rounded">
       Estatísticas de todo setor
     </a>
+    {% if usuario_selecionado %}
+    <!-- Estatísticas individuais do analista -->
+    <a href="{{ url_for('acompanhamento_analista',
+                        analista_id=usuario_selecionado.id,
+                        mes=mes) }}"
+       class="bg-indigo-600 text-white px-4 py-2 rounded">
+      Ver Estatísticas da produção individual de {{ usuario_selecionado.nome }}
+    </a>
+    {% endif %}
   </div>
 
-  <!-- filtro de analista e mês -->
+  <!-- ===============================
+       2) Filtro de analista e mês
+       =============================== -->
   <form method="get" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
     <div>
       <label class="block font-semibold mb-1">Selecione um Analista:</label>
@@ -43,26 +57,17 @@
       </select>
     </div>
     <div class="md:col-span-2 flex items-end">
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full">
+      <button type="submit"
+              class="bg-blue-600 text-white px-4 py-2 rounded w-full">
         Visualizar Produção
       </button>
     </div>
   </form>
 
   {% if usuario_selecionado %}
-  <!-- novo botão que abre a página separada de acompanhamento -->
-  <div class="mb-16">
-    <a href="{{ url_for('acompanhamento_analista',
-                        analista_id=usuario_selecionado.id,
-                        mes=mes) }}"
-       class="bg-indigo-600 text-white px-4 py-2 rounded">
-      Ver Estatísticas da produção individual de {{ usuario_selecionado.nome }}
-    </a>
-  </div>
-  {% endif %}
-
-  {% if usuario_selecionado %}
-    <!-- produção detalhada (igual ao que você já tinha) -->
+    <!-- ===============================
+         3) Título da Produção
+         =============================== -->
     <div class="bg-blue-200 text-blue-900 px-4 py-2 rounded mb-4">
       <h2 class="text-xl font-semibold">
         Produção de {{ usuario_selecionado.nome }} – {{ mes }}
@@ -78,7 +83,9 @@
       </div>
     {% endif %}
 
-    <!-- meta mensal e progressão -->
+    <!-- ===============================
+         4) Meta mensal e progresso
+         =============================== -->
     <div class="mb-6">
       <div class="bg-gray-200 w-full h-4 rounded">
         <div class="bg-green-500 h-4 rounded"
@@ -87,7 +94,9 @@
       <p>{{ total_feito }} de {{ meta }} processos ({{ percentual_meta }}%)</p>
     </div>
 
-    <!-- painel de edição detalhada -->
+    <!-- ===============================
+         5) Edição detalhada por semana
+         =============================== -->
     <form method="post"
           action="{{ url_for('painel_gerente',
                               analista_id=usuario_selecionado.id,
