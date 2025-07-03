@@ -391,8 +391,20 @@ def registrar_producao():
     meses = ['Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     ano = 2025
 
-    mes_param = request.args.get('mes') or 'Junho'
-    mes_atual = mes_param if mes_param in meses else 'Junho'
+    # Pega o parâmetro ?mes=... se houver
+    mes_param = request.args.get('mes')
+
+    # Se o parâmetro for válido, usa-o; caso contrário, abre no mês atual
+    if mes_param in meses:
+        mes_atual = mes_param
+    else:
+        # Mapeia o mês numérico para nosso array de meses (Junho=6 → índice 0)
+        mes_numero_atual = datetime.now().month
+        if 6 <= mes_numero_atual <= 12:
+            mes_atual = meses[mes_numero_atual - 6]
+        else:
+            mes_atual = meses[0]  # fallback para Junho
+
     mes_index = meses.index(mes_atual)
     mes_anterior = meses[mes_index - 1] if mes_index > 0 else meses[-1]
     mes_posterior = meses[mes_index + 1] if mes_index < len(meses) - 1 else meses[0]
@@ -409,13 +421,13 @@ def registrar_producao():
     if request.method == 'POST':
         for semana in semanas:
             for i in range(linhas):
-                indice_linha = i + 1  # <<< ADICIONADO
+                indice_linha = i + 1
 
                 producao = LinhaProducao.query.filter_by(
                     usuario_id=usuario.id,
                     mes=mes_atual,
                     semana=semana,
-                    indice_linha=indice_linha  # <<< ADICIONADO
+                    indice_linha=indice_linha
                 ).first()
 
                 if not producao:
@@ -423,14 +435,14 @@ def registrar_producao():
                         usuario_id=usuario.id,
                         mes=mes_atual,
                         semana=semana,
-                        indice_linha=indice_linha,  # <<< ADICIONADO
+                        indice_linha=indice_linha,
                         data_registro=datetime.utcnow()
                     )
                     db.session.add(producao)
 
                 for campo in campos:
-                    producao_valor = request.form.get(f'{semana}_{i}_{campo}')
-                    setattr(producao, campo, producao_valor is not None)
+                    valor = request.form.get(f'{semana}_{i}_{campo}')
+                    setattr(producao, campo, bool(valor))
 
                 producao.observacao = request.form.get(f'{semana}_{i}_obs') or ""
 
@@ -440,7 +452,12 @@ def registrar_producao():
 
     processos_info = {
         semana: [
-            LinhaProducao.query.filter_by(usuario_id=usuario.id, mes=mes_atual, semana=semana, indice_linha=i + 1).first()
+            LinhaProducao.query.filter_by(
+                usuario_id=usuario.id,
+                mes=mes_atual,
+                semana=semana,
+                indice_linha=i + 1
+            ).first()
             for i in range(linhas)
         ]
         for semana in semanas
@@ -448,13 +465,17 @@ def registrar_producao():
 
     totais = {semana: {campo: 0 for campo in campos} for semana in semanas}
     for semana in semanas:
-        producoes = LinhaProducao.query.filter_by(usuario_id=usuario.id, semana=semana, mes=mes_atual).all()
-        for producao in producoes:
+        producoes = LinhaProducao.query.filter_by(
+            usuario_id=usuario.id,
+            semana=semana,
+            mes=mes_atual
+        ).all()
+        for p in producoes:
             for campo in campos:
-                if getattr(producao, campo):
+                if getattr(p, campo):
                     totais[semana][campo] += 1
 
-    total_feito = sum(sum(t.values()) for t in totais.values())
+    total_feito = sum(sum(vals.values()) for vals in totais.values())
     meta = 112 if usuario.modalidade == 'teletrabalho' else 100
     percentual_meta = min(int((total_feito / meta) * 100), 100)
 
