@@ -166,7 +166,86 @@ def acompanhamento_anual():
         campos         = campos
     )
 
+@app.route('/acompanhamento-analista')
+@login_required
+def acompanhamento_analista():
+    # só gestores
+    if current_user.tipo == 'analista':
+        flash('Acesso não autorizado.')
+        return redirect(url_for('index'))
 
+    analista_id      = request.args.get('analista_id', type=int)
+    # lista fixa de meses (meses que você usa no sistema)
+    meses            = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+    # define mês padrão: parâmetro ou mês corrente (se estiver na lista) ou 'Junho'
+    hoje_nome        = datetime.now().strftime('%B').capitalize()
+    mes_param        = request.args.get('mes')
+    if mes_param in meses:
+        mes = mes_param
+    elif hoje_nome in meses:
+        mes = hoje_nome
+    else:
+        mes = 'Junho'
+
+    # gerar semanas do mês
+    ano              = datetime.now().year
+    mes_idx          = meses.index(mes)
+    semanas          = gerar_semanas(mes_idx + 6, ano)
+
+    # parâmetros de filtro do gráfico
+    view             = request.args.get('view', 'mes')   # 'semana','mes','ano'
+    selected_semana  = request.args.get('semana', semanas[0] if semanas else '')
+
+    # campos de contagem
+    campos = [
+        'averbacao','desaverbacao','conf_av_desav','ctc','conf_ctc',
+        'dtc','conf_dtc','in_68','dpor','registro_atos','ag_completar','outros'
+    ]
+
+    # busca o analista
+    analista = Usuario.query.get(analista_id) if analista_id else None
+
+    # inicializa contadores
+    counts = {c: 0 for c in campos}
+
+    if analista:
+        if view == 'semana':
+            # só aquela semana
+            for p in LinhaProducao.query.filter_by(
+                    usuario_id=analista.id, mes=mes, semana=selected_semana):
+                for c in campos:
+                    if getattr(p, c):
+                        counts[c] += 1
+
+        elif view == 'mes':
+            # soma todas as semanas do mês
+            for s in semanas:
+                for p in LinhaProducao.query.filter_by(
+                        usuario_id=analista.id, mes=mes, semana=s):
+                    for c in campos:
+                        if getattr(p, c):
+                            counts[c] += 1
+
+        else:  # view == 'ano'
+            # soma todos os meses
+            for m in meses:
+                for p in LinhaProducao.query.filter_by(
+                        usuario_id=analista.id, mes=m):
+                    for c in campos:
+                        if getattr(p, c):
+                            counts[c] += 1
+
+    return render_template(
+        'acompanhamento_analista.html',
+        analista=analista,
+        meses=meses,
+        mes=mes,
+        semanas=semanas,
+        view=view,
+        selected_semana=selected_semana,
+        campos=campos,
+        counts=counts
+    )
 
 from datetime import datetime
 
