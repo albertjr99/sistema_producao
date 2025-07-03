@@ -18,21 +18,22 @@
       <select name="analista_id" class="border rounded p-2 w-full">
         <optgroup label="Presencial">
           {% for a in analistas_presencial %}
-            <option value="{{ a.id }}" {% if usuario_selecionado and a.id == usuario_selecionado.id %}selected{% endif %}>
+            <option value="{{ a.id }}"
+              {% if usuario_selecionado and a.id == usuario_selecionado.id %}selected{% endif %}>
               {{ a.nome }}
             </option>
           {% endfor %}
         </optgroup>
         <optgroup label="Teletrabalho">
           {% for a in analistas_teletrabalho %}
-            <option value="{{ a.id }}" {% if usuario_selecionado and a.id == usuario_selecionado.id %}selected{% endif %}>
+            <option value="{{ a.id }}"
+              {% if usuario_selecionado and a.id == usuario_selecionado.id %}selected{% endif %}>
               {{ a.nome }}
             </option>
           {% endfor %}
         </optgroup>
       </select>
     </div>
-
     <div>
       <label class="block font-semibold mb-1">Mês:</label>
       <select name="mes" class="border rounded p-2 w-full">
@@ -41,7 +42,6 @@
         {% endfor %}
       </select>
     </div>
-
     <div class="md:col-span-2 flex items-end">
       <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full">
         Visualizar Produção
@@ -49,10 +49,22 @@
     </div>
   </form>
 
+  {% if usuario_selecionado %}
+  <!-- novo botão que abre a página separada de acompanhamento -->
+  <div class="mb-6">
+    <a href="{{ url_for('acompanhamento_analista',
+                        analista_id=usuario_selecionado.id,
+                        mes=mes) }}"
+       class="bg-indigo-600 text-white px-4 py-2 rounded">
+      Acompanhar produção mensal de {{ usuario_selecionado.nome }}
+    </a>
+  </div>
+  {% endif %}
+
   <!-- botão que abre/fecha o painel de acompanhamento mensal -->
   <button id="btnToggleAcompanhamento"
           class="bg-indigo-600 text-white px-4 py-2 rounded mb-4">
-    Acompanhar produção mensal do analista
+    Acompanhar produção (resumo rápido)
   </button>
 
   <!-- painel oculto com a tabela de contagem -->
@@ -87,7 +99,9 @@
         </div>
       {% endfor %}
     {% else %}
-      <p class="text-gray-600">Selecione antes um analista e clique em “Visualizar Produção”.</p>
+      <p class="text-gray-600">
+        Selecione antes um analista e clique em “Visualizar Produção”.
+      </p>
     {% endif %}
   </div>
 
@@ -109,7 +123,9 @@
   {% if usuario_selecionado %}
     <!-- produção detalhada (igual ao que você já tinha) -->
     <div class="bg-blue-200 text-blue-900 px-4 py-2 rounded mb-4">
-      <h2 class="text-xl font-semibold">Produção de {{ usuario_selecionado.nome }} – {{ mes }}</h2>
+      <h2 class="text-xl font-semibold">
+        Produção de {{ usuario_selecionado.nome }} – {{ mes }}
+      </h2>
     </div>
 
     {% if alertas %}
@@ -131,9 +147,10 @@
     </div>
 
     <!-- painel de edição detalhada -->
-    <form method="post" action="{{ url_for('painel_gerente',
-                                          analista_id=usuario_selecionado.id,
-                                          mes=mes) }}">
+    <form method="post"
+          action="{{ url_for('painel_gerente',
+                              analista_id=usuario_selecionado.id,
+                              mes=mes) }}">
       {% for semana in semanas %}
         <div class="mb-6">
           <div class="bg-blue-200 text-blue-900 px-3 py-2 rounded mb-2">
@@ -158,17 +175,20 @@
                 <tr>
                   <td class="border px-2">{{ i+1 }}</td>
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_numero_processo"
+                    <input type="text"
+                           name="{{ semana }}_{{ i }}_numero_processo"
                            value="{{ p.numero_processo if p else '' }}"
                            class="w-full border p-1">
                   </td>
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_requerente"
+                    <input type="text"
+                           name="{{ semana }}_{{ i }}_requerente"
                            value="{{ p.requerente if p else '' }}"
                            class="w-full border p-1">
                   </td>
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_fase"
+                    <input type="text"
+                           name="{{ semana }}_{{ i }}_fase"
                            value="{{ p.fase if p else '' }}"
                            class="w-full border p-1">
                   </td>
@@ -180,7 +200,8 @@
                     </td>
                   {% endfor %}
                   <td class="border px-2">
-                    <input type="text" name="{{ semana }}_{{ i }}_obs"
+                    <input type="text"
+                           name="{{ semana }}_{{ i }}_obs"
                            value="{{ p.observacao if p else '' }}"
                            class="w-full border p-1">
                   </td>
