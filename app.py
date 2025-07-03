@@ -313,9 +313,6 @@ def painel_gerente():
         alertas                = alertas,
         totais_anuais          = totais_anuais
     )
-)
-
-
 # --- Acompanhamento Pessoal com filtro de mês e semana ---
 @app.route('/acompanhamento-pessoal')
 @login_required
