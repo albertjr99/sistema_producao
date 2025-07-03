@@ -168,6 +168,8 @@ def acompanhamento_anual():
 
 
 
+from datetime import datetime
+
 @app.route('/painel-gerente', methods=['GET', 'POST'])
 @login_required
 def painel_gerente():
@@ -182,15 +184,25 @@ def painel_gerente():
 
     # 3) leitura dos filtros
     analista_id     = request.values.get('analista_id', type=int)
-    mes             = request.values.get('mes', default='Junho')
-    selected_semana = request.values.get('semana', default='Mês inteiro')
+    mes_param       = request.values.get('mes')               # tenta ler ?mes=
+    selected_semana = request.values.get('semana', 'Mês inteiro')
 
+    # meses que trabalhamos
     meses = ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-    if mes not in meses:
-        mes = 'Junho'
+
+    # se veio mes_param válido, usa-o; senão, define pelo mês atual
+    if mes_param in meses:
+        mes = mes_param
+    else:
+        m_atual = datetime.now().month
+        if 6 <= m_atual <= 12:
+            mes = meses[m_atual - 6]
+        else:
+            mes = meses[0]
 
     usuario_sel = Usuario.query.get(analista_id) if analista_id else None
 
+    # gera semanas e linhas
     ano     = datetime.now().year
     idx     = meses.index(mes)
     semanas = gerar_semanas(idx + 6, ano)
@@ -237,7 +249,6 @@ def painel_gerente():
                         setattr(p, c, bool(request.form.get(f'{s}_{i}_{c}')))
             db.session.commit()
             flash('Produção atualizada com sucesso.')
-            # mantém filtros após salvar
             return redirect(url_for('painel_gerente',
                                     analista_id=usuario_sel.id,
                                     mes=mes,
@@ -302,6 +313,8 @@ def painel_gerente():
         alertas                = alertas,
         totais_anuais          = totais_anuais
     )
+)
+
 
 # --- Acompanhamento Pessoal com filtro de mês e semana ---
 @app.route('/acompanhamento-pessoal')
