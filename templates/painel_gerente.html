@@ -56,11 +56,14 @@
                         analista_id=usuario_selecionado.id,
                         mes=mes) }}"
        class="bg-indigo-600 text-white px-4 py-2 rounded">
-      Acompanhar produção individual de {{ usuario_selecionado.nome }}
+      Estatísticas da produção individual de {{ usuario_selecionado.nome }}
     </a>
   </div>
   {% endif %}
 
+
+
+  
   {% if usuario_selecionado %}
     <!-- produção detalhada (igual ao que você já tinha) -->
     <div class="bg-blue-200 text-blue-900 px-4 py-2 rounded mb-4">
